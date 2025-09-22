@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-
 use anyhow::{Context, Error, Ok, Result};
 use axum::{
     Router,
@@ -9,6 +8,8 @@ use reqwest::Client;
 use serde::Deserialize;
 use tokio::fs;
 use yup_oauth2::{AccessToken, ApplicationSecret, InstalledFlowAuthenticator};
+pub mod email_parser;
+use crate::email_parser::{get_parsed_email};
 
 
 #[tokio::main]
@@ -21,9 +22,6 @@ async fn main() {
 
     println!("Hello, world!");
 }
-
-#[derive(Deserialize)]
-struct RawMsg { id: String, raw: String }
 
 
 #[derive(Debug, Deserialize)]
@@ -58,7 +56,7 @@ async fn query_email(queries: Vec<String>) -> Result<()> {
     // get email ids by queries
     if let Some(token_str) = token.token() {
         emails = list_all_message(&client, &token_str, &queries.join(" ")).await?;
-        // retrieve_email_details(&client, token_str, &emails.get(0).unwrap().id).await?
+        get_parsed_email(&client, token_str, &emails.get(0).unwrap().id).await?
     } else {
         // cooked auth failed....
     }
@@ -75,6 +73,7 @@ async fn query_email(queries: Vec<String>) -> Result<()> {
 
 /// Lists all the Messages based on the given queries.
 /// Automatically runs pagination based on the returned response
+/// For Gmail API
 async fn list_all_message(client: &Client, token: &str, combined_queries: &str) -> Result<Vec<Message>> {
     let mut all_messages: Vec<Message> = Vec::new();
     let mut current_page_token: Option<String> = None;
@@ -98,7 +97,7 @@ async fn list_all_message(client: &Client, token: &str, combined_queries: &str) 
         
         if let Some(tok) = resp.next_page_token {
             current_page_token = Some(tok);
-            // break;
+            break;
         } else{ 
             break;
         }
@@ -106,32 +105,6 @@ async fn list_all_message(client: &Client, token: &str, combined_queries: &str) 
     Ok(all_messages)
 }
 
-
-async fn retrieve_email_details(client: &Client, token: &str, id: &str) -> Result<()> {
-    let url = format!(
-        "https://gmail.googleapis.com/gmail/v1/users/me/messages/{}?format=full",
-        id
-    );
-
-    let msg: RawMsg = client
-        .get(url)
-        .bearer_auth(token)
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-
-    // parsing of email
-
-    Ok(())
-}
-
-
-
-async fn parse_email_body(gmail_message: GmailMessage) {
-    
-}
 
 /// Runs authentication based on the client_secret and returns the AccessToken
 async fn authenticate_connection() -> Result<AccessToken> {

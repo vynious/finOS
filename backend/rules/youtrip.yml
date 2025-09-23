@@ -1,0 +1,12 @@
+id: "youtrip-digest"
+detect:
+  from_contains: ["@you.co"]
+  subject_re: "(?i)online purchases|withdrawals|spending|card.*payment"
+extract:
+  patterns:
+    - "(?i)^(?P<merchant>[A-Z0-9 ,.'&-]{3,})\\s+ (?P<currency>[A-Z]{3}|[$€£])\\s*(?P<amount>[0-9.,]+)$"
+    - "(?i)amount[:\\s]+ (?P<currency>[A-Z]{3}|[$€£])\\s*(?P<amount>[0-9.,]+)"
+normalize:
+  currency_from_symbol: true
+  decimal_heuristics: "eu-vs-us"
+  tz: "Europe/Rome"

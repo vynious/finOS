@@ -6,22 +6,7 @@ use serde::{Deserialize};
 use anyhow::{Result, Context};
 use tokio::fs;
 use yup_oauth2::{ApplicationSecret, InstalledFlowAuthenticator, AccessToken};
-
-
-
-#[derive(Deserialize)]
-struct RawGmailMessage { id: String, raw: String }
-
-
-struct ParsedEmailContent {
-    subject: Option<String>,
-    from_name: Option<String>,
-    from_addr: Option<String>,
-    text: Option<String>,
-    html: Option<String>,
-}
-
-
+use super::models::*;
 
 fn decode_base64url(s: &str) -> Result<Vec<u8>> {
     let mut s = s.replace('-', "+").replace('_', "/");
@@ -36,29 +21,12 @@ pub struct EmailService {
 }
 
 
-#[derive(Debug, Deserialize)]
-struct GmailMessagesResponse {
-    messages: Option<Vec<GmailMessage>>,
-    #[serde(rename = "nextPageToken")]
-    next_page_token: Option<String>,
-    #[serde(rename = "resultSizeEstimate")]
-    result_size_estimate: Option<u64>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GmailMessage {
-    id: String,
-    #[serde(rename = "threadId")]
-    thread_id: String,
-}
-
-
 impl EmailService {
     pub fn new() -> Self {
         EmailService { client:reqwest::Client::new() }
     }
 
-    /// TODO: 
+    // TODO: 
     pub async fn query_and_process_unseen(&self, queries: Vec<String>) -> Result<()> {
         // authentication
         // get all emails based on given query
@@ -74,7 +42,7 @@ impl EmailService {
             println!("parsing token: {}", token_str);
             emails = self.list_all_messages(&token_str, &queries.join(" ")).await?;
         } else {
-            // cooked auth failed....
+            // cooked auth failed...
         }
 
         // omit out emails that are seen
@@ -87,14 +55,23 @@ impl EmailService {
         for email in filtered_emails {
                 seen_emails.insert(email.id.to_string());
         }
-        
+
+        // TODO:
+        // iterate over the new emails, retrieve its details and do additional 
+        // filtering on the type of email, if its a receipt of a transaction/payment 
+        // parse the details out into a Transaction struct and store into the database
+        // we should also store the latest processed email, so when we poll we can poll 
+        // from that timestamp onwards this acts like a checkpoint to 
+        // optimise the retrieval of the emails.
+
+
         Ok(())
     }
 
     /// Lists all the Messages based on the given queries.
     /// Automatically runs pagination based on the returned response
     /// For Gmail API
-    pub async fn list_all_messages(&self, token: &str, combined_queries: &str) -> Result<Vec<GmailMessage>> {
+    async fn list_all_messages(&self, token: &str, combined_queries: &str) -> Result<Vec<GmailMessage>> {
         let mut all_messages: Vec<GmailMessage> = Vec::new();
         let mut current_page_token: Option<String> = None;
 
@@ -127,7 +104,7 @@ impl EmailService {
 
 
     /// Runs authentication based on the client_secret and returns the AccessToken
-    pub async fn authenticate(&self) -> Result<AccessToken> {
+    async fn authenticate(&self) -> Result<AccessToken> {
         // load client secret  
         println!("running email authentication");
         let secret_str = fs::read_to_string("client_secret_web.json").await.context("parsing web secret")?;
@@ -151,6 +128,7 @@ impl EmailService {
         Ok(token)
     }
 
+    /// Retrieves the email based on the GmailMessage ID and extracts the content
     async fn fetch_and_parse_email(&self, token: &str, id: &str) -> Result<()> {   
         let bytes = self.fetch_email_raw(token, id).await?;
         let message = self.parse_message(&bytes);

@@ -1,4 +1,5 @@
 id: "youtrip-digest"
+issuer: "YouTrip"
 detect:
   from_contains: ["@you.co"]
   subject_re: "(?i)online purchases|withdrawals|spending|card.*payment"

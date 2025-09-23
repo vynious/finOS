@@ -176,6 +176,13 @@ impl EmailService {
             html
         }
     }
-
+    
+    fn applies(&self, rule: &CompiledRule, from: &str, subject: &str) -> bool {
+        let from_ok = rule.from_contains.iter().any(|s| from.contains(s));
+        let subj_ok = rule.subject_re.as_ref().map(|re| re.is_match(subject)).unwrap_or(true);
+        from_ok && subj_ok
+    }
+    
+    
     
 }

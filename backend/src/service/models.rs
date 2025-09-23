@@ -1,6 +1,7 @@
 
 
 use serde::{Deserialize};
+use regex::Regex;
 
 
 #[derive(Deserialize)]
@@ -41,4 +42,40 @@ pub struct Transaction {
     pub merchant: String,
     pub amount: f32,
     pub currency: String,
+}
+
+
+#[derive(Debug, Deserialize)]
+struct RuleFile {
+    id: String,
+    detect: Detect,
+    extract: Extract,
+    normalize: Normalize,
+}
+
+#[derive(Debug, Deserialize)]
+struct Detect {
+    from_contains: Vec<String>,
+    subject_re: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Extract {
+    // run these patterns against text lines/blocks
+    patterns: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Normalize {
+    currency_from_symbol: bool,
+    decimal_heuristics: Option<String>, // "eu-vs-us"
+    tz: Option<String>,
+}
+
+pub struct CompiledRule {
+    pub id: String,
+    pub from_contains: Vec<String>,
+    pub subject_re: Option<Regex>,
+    pub patterns: Vec<Regex>,
+    pub norm: Normalize,
 }

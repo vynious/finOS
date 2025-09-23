@@ -1,0 +1,53 @@
+id: "trustbank-card-spend"
+issuer: "Trust Bank"
+detect:
+  from_contains: ["@trustbank.sg"]
+  subject_re: "(?i)(overseas\\s+transaction\\s+successful|you('?ve)?\\s+spent|card\\s+spend)"
+
+extract:
+  # Body hero line (primary):
+  # "You've spent EUR 15.00 using Trust Link card at SumUp *Oscar Barbershop Castellanza IT on 22 Sep 2025 16:47SGT."
+  patterns:
+    - >
+      (?ix)
+      you('?ve)?\s+spent\s+
+      (?P<currency>[A-Z]{3}|[€$£])\s*(?P<amount>[0-9][0-9.,\s]*)
+      (?:\s+using\s+[A-Za-z ]+card)?\s+at\s+
+      (?P<merchant>.+?)\s+on\s+
+      (?P<date>\d{1,2}\s+[A-Za-z]{3,}\s+\d{4})\s+
+      (?P<time>\d{1,2}:\d{2})\s*(?P<tz>[A-Z]{2,5})
+
+    # "EUR 15.00 spent at <merchant> on 22 Sep 2025 16:47SGT"
+    - >
+      (?ix)
+      (?P<currency>[A-Z]{3}|[€$£])\s*(?P<amount>[0-9][0-9.,\s]*)
+      \s+spent\s+at\s+(?P<merchant>.+?)\s+on\s+
+      (?P<date>\d{1,2}\s+[A-Za-z]{3,}\s+\d{4})\s+(?P<time>\d{1,2}:\d{2})\s*(?P<tz>[A-Z]{2,5})
+
+    # Super-fallback if date/time missing:
+    - >
+      (?ix)
+      you('?ve)?\s+spent\s+
+      (?P<currency>[A-Z]{3}|[€$£])\s*(?P<amount>[0-9][0-9.,\s]*)
+      .*?\s+at\s+(?P<merchant>.+?)
+
+  post_process:
+    merchant:
+      # Trim typical end tokens that leak after merchant (country codes, double spaces, asterisks)
+      strip_suffix_re:
+        - "\\s+[A-Z]{2}$"           # country code like 'IT'
+      collapse_spaces: true
+      trim_asterisks: true
+
+normalize:
+  currency_from_symbol: true           # € → EUR, $ → USD, £ → GBP
+  decimal_heuristics: "eu-vs-us"
+  # Map common email TZ abbreviations you may see
+  tz_map:
+    SGT: "Asia/Singapore"
+    CET: "Europe/Rome"
+    CEST: "Europe/Rome"
+    UTC: "UTC"
+  tz_fallback: "Europe/Rome"
+  amount:
+    min: 0.00

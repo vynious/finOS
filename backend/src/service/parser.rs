@@ -77,7 +77,7 @@ impl EmailService {
             // cooked auth failed....
         }
 
-        // filter out emails that are seen
+        // omit out emails that are seen
         let filtered_emails: Vec<&GmailMessage> = emails
         .iter()
         .filter(|email| !seen_emails.contains(&email.id))
@@ -199,4 +199,5 @@ impl EmailService {
         }
     }
 
+    
 }

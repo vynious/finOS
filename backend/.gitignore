@@ -1,3 +1,4 @@
 /client_secret*.json
 /tokencache.json
 /target
+.env

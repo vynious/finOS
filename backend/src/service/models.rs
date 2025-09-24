@@ -36,40 +36,40 @@ pub struct GmailMessage {
 
 
 #[derive(Debug, Deserialize)]
-pub struct Transaction {
-    pub id: String,
+pub struct Receipt {
+    pub id: String, // Gmail message ID
     pub issuer: String,
     pub merchant: String,
-    pub amount: f32,
+    pub amount: String,
     pub currency: String,
 }
 
 
 #[derive(Debug, Deserialize)]
-struct RuleFile {
-    id: String,
-    detect: Detect,
-    extract: Extract,
-    normalize: Normalize,
+pub struct RuleFile {
+    pub id: String,
+    pub detect: Detect,
+    pub extract: Extract,
+    pub normalize: Normalize,
 }
 
 #[derive(Debug, Deserialize)]
-struct Detect {
-    from_contains: Vec<String>,
-    subject_re: Option<String>,
+pub struct Detect {
+    pub from_contains: Vec<String>,
+    pub subject_re: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-struct Extract {
+pub struct Extract {
     // run these patterns against text lines/blocks
-    patterns: Vec<String>,
+    pub patterns: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
-struct Normalize {
-    currency_from_symbol: bool,
-    decimal_heuristics: Option<String>, // "eu-vs-us"
-    tz: Option<String>,
+pub struct Normalize {
+    pub currency_from_symbol: bool,
+    pub decimal_heuristics: Option<String>, // "eu-vs-us"
+    pub tz: Option<String>,
 }
 
 pub struct CompiledRule {

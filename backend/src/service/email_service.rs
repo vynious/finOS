@@ -2,8 +2,9 @@ use std::collections::{HashMap, HashSet};
 use base64::Engine;
 use mail_parser::{MessageParser, Message, HeaderValue};
 use reqwest::Client;
+use regex::Regex;
 use serde::{Deserialize};
-use anyhow::{Result, Context};
+use anyhow::{Result, Context, bail};
 use tokio::fs;
 use yup_oauth2::{ApplicationSecret, InstalledFlowAuthenticator, AccessToken};
 use super::models::*;
@@ -42,7 +43,7 @@ impl EmailService {
             println!("parsing token: {}", token_str);
             emails = self.list_all_messages(&token_str, &queries.join(" ")).await?;
         } else {
-            // cooked auth failed...
+            bail!("failed to obtain access token");
         }
 
         // omit out emails that are seen
@@ -182,7 +183,162 @@ impl EmailService {
         let subj_ok = rule.subject_re.as_ref().map(|re| re.is_match(subject)).unwrap_or(true);
         from_ok && subj_ok
     }
+
+
+    fn html_to_text(&self, html: &str) -> String {
+        //  join all text nodes.
+        let doc = scraper::Html::parse_document(html);
+        doc.root_element().text().collect::<Vec<_>>().join("\n")
+    }
+
+    fn canonicalize_amount(&self, amount_raw: &str) -> String {
+        let mut s = amount_raw.trim().replace(' ', "");
+        let has_dot = s.contains('.');
+        let has_comma = s.contains(',');
+        let dec_is_comma =
+            (has_dot && has_comma && s.rfind(',') > s.rfind('.')) || (!has_dot && has_comma);
+        if dec_is_comma { s = s.replace('.', ""); s = s.replace(',', "."); }
+        else { s = s.replace(',', ""); }
+        s
+    }
+
+    /// load rules based on issuer
+    async fn compile_rule(&self, issuer: &str) -> Result<CompiledRule> {
+        let mut yaml: Option<String> = None;
+        match issuer {
+            "youtrip" => {
+                yaml = fs::read_to_string("rules/youtrip.yml").await.ok();
+            },
+            "wise" => {
+                yaml = fs::read_to_string("rules/wise.yml").await.ok();
+            },
+            "trustbank" => {
+                yaml = fs::read_to_string("rules/trustbank.yml").await.ok();
+            },
+            _ => bail!("unknown issuer: {}", issuer),
+        }
+
+        if let Some(yaml_str) = yaml {
+            let rf: RuleFile = serde_yaml::from_str(&yaml_str)?;
+            Ok(CompiledRule {
+                id: rf.id,
+                from_contains: rf.detect.from_contains,
+                subject_re: rf.detect.subject_re.map(|s| Regex::new(&s)).transpose()?,
+                patterns: rf.extract.patterns.into_iter().map(|p| Regex::new(&p)).collect::<Result<_, _>>()?,
+                norm: rf.normalize,
+            })
+        } else {
+            bail!("rule file not found for issuer: {}", issuer);
+        }
+
+    }
+        
+    fn map_currency(&self, cur: &str, allow_symbol: bool) -> Option<String> {
+        let c = cur.trim();
+        if c.len() == 3 { return Some(c.to_uppercase()); }
+        if !allow_symbol { return None; }
+        Some(match c {
+            "€" => "EUR", "$" => "USD", "£" => "GBP", "¥" => "JPY", "S$" => "SGD", _ => "UNKNOWN"
+        }.to_string())
+    }
+
+    fn parse_with_rule(&self, id: &str, rule: &CompiledRule, issuer: &str, text: &str) -> Vec<Receipt> {
+        // Split into reasonably sized lines/blocks
+        let processed = text
+            .replace('\u{00a0}', " ")
+            .replace('\u{200b}', "");
+        let lines: Vec<&str> = processed
+            .lines()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty())
+            .collect();
+
+        let mut out = Vec::new();
+
+        for line in &lines {
+            for re in &rule.patterns {
+                if let Some(c) = re.captures(line) {
+                    let merchant = c.name("merchant").map(|m| m.as_str().trim().to_string());
+                    let currency_raw = c.name("currency").map(|m| m.as_str()).unwrap_or("");
+                    let amount_raw = c.name("amount").map(|m| m.as_str()).unwrap_or("");
+
+                    if let (Some(merchant), true) = (merchant, !amount_raw.is_empty()) {
+                        let amount = self.canonicalize_amount(amount_raw);
+                        let currency = self.map_currency(currency_raw, rule.norm.currency_from_symbol)
+                            .unwrap_or_else(|| "XXX".to_string());
+                        out.push(Receipt { id: id.to_string(), issuer: issuer.to_string(), merchant, currency, amount });
+                    }
+                }
+            }
+        }
+        out
+    }
+}
+        
+        
     
-    
-    
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::service::models::{CompiledRule, Normalize};
+    use base64::engine::general_purpose::NO_PAD;
+    use regex::Regex;
+
+    fn svc() -> EmailService { EmailService::new() }
+
+    #[test]
+    fn canonicalize_amount_handles_commas_and_dots() {
+        let s = svc();
+        assert_eq!(s.canonicalize_amount("1,234.56"), "1234.56");
+        assert_eq!(s.canonicalize_amount("1.234,56"), "1234.56");
+        assert_eq!(s.canonicalize_amount("  12 345  "), "12345");
+    }
+
+    #[test]
+    fn map_currency_from_code_and_symbol() {
+        let s = svc();
+        assert_eq!(s.map_currency("sgd", true).as_deref(), Some("SGD"));
+        assert_eq!(s.map_currency("S$", true).as_deref(), Some("SGD"));
+        assert_eq!(s.map_currency("$", false), None);
+    }
+
+    #[test]
+    fn parse_with_rule_extracts_receipt() {
+        let s = svc();
+        let rule = CompiledRule {
+            id: "youtrip".to_string(),
+            from_contains: vec!["noreply@youtrip.com".to_string()],
+            subject_re: None,
+            patterns: vec![
+                Regex::new(r"(?i)paid\s+(?P<currency>sgd|\$)\s*(?P<amount>\d+(?:[.,]\d{2})?)\s+at\s+(?P<merchant>.+)$").unwrap()
+            ],
+            norm: Normalize { currency_from_symbol: true, decimal_heuristics: None, tz: None },
+        };
+        let out = s.parse_with_rule(
+            "msg-1",
+            &rule,
+            "youtrip",
+            "Paid SGD 12.34 at Coffee Bean"
+        );
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].merchant, "Coffee Bean");
+        assert_eq!(out[0].currency, "SGD");
+        assert_eq!(out[0].amount, "12.34");
+    }
+
+    #[test]
+    fn applies_checks_from_and_subject() {
+        let s = svc();
+        let rule = CompiledRule {
+            id: "x".to_string(),
+            from_contains: vec!["bank.com".to_string()],
+            subject_re: Some(Regex::new(r"(?i)receipt").unwrap()),
+            patterns: vec![],
+            norm: Normalize { currency_from_symbol: true, decimal_heuristics: None, tz: None },
+        };
+        assert!(s.applies(&rule, "no-reply@bank.com", "Your receipt is ready"));
+        assert!(!s.applies(&rule, "no-reply@shop.com", "Your receipt is ready"));
+        assert!(!s.applies(&rule, "no-reply@bank.com", "Statement"));
+    }
 }

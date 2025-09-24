@@ -38,13 +38,15 @@ impl EmailService {
         // get authenticated token
         let token = self.authenticate().await?;
         
+        // derive token string once
+        let token_str = match token.token() {
+            Some(ts) => ts.to_string(),
+            None => bail!("failed to obtain access token"),
+        };
+
         // get email ids by queries
-        if let Some(token_str) = token.token() {
-            println!("parsing token: {}", token_str);
-            emails = self.list_all_messages(&token_str, &queries.join(" ")).await?;
-        } else {
-            bail!("failed to obtain access token");
-        }
+        println!("parsing token: {}", token_str);
+        emails = self.list_all_messages(&token_str, &queries.join(" ")).await?;
 
         // omit out emails that are seen
         let filtered_emails: Vec<&GmailMessage> = emails
@@ -55,7 +57,17 @@ impl EmailService {
         // add into seen emails
         for email in filtered_emails {
                 seen_emails.insert(email.id.to_string());
+                let parsed_email_content = self.fetch_and_parse_email(&token_str, &email.id).await?;
+                let text = parsed_email_content.html
+                    .map(|html| self.html_to_text(&html))
+                    .unwrap_or_else(|| parsed_email_content.text.unwrap_or_default());
+                let compiled_rule = self.compile_rule("youtrip").await?;
+                let receipts = self.parse_with_rule(&email.id, &compiled_rule, "youtrip", &text);
+                println!("size {}", receipts.len());
         }
+
+
+
 
         // TODO:
         // iterate over the new emails, retrieve its details and do additional 
@@ -78,10 +90,10 @@ impl EmailService {
 
         // Run pagination on the query
         loop {
-            let mut req = self.client
-            .get("https://gmail.googleapis.com/gmail/v1/users/me/messages")
-            .bearer_auth(token)
-            .query(&[("q", combined_queries)]);
+                let mut req = self.client
+                .get("https://gmail.googleapis.com/gmail/v1/users/me/messages")
+                .bearer_auth(token)
+                .query(&[("q", combined_queries)]);
 
             if let Some(tok) = &current_page_token {
                 req = req.query(&[("pageToken", tok)]);
@@ -130,18 +142,11 @@ impl EmailService {
     }
 
     /// Retrieves the email based on the GmailMessage ID and extracts the content
-    async fn fetch_and_parse_email(&self, token: &str, id: &str) -> Result<()> {   
+    async fn fetch_and_parse_email(&self, token: &str, id: &str) -> Result<ParsedEmailContent> {   
         let bytes = self.fetch_email_raw(token, id).await?;
         let message = self.parse_message(&bytes);
         let extracted = self.extract_email_content(&message);
-
-        println!("extracted subject -> {}", extracted.subject.unwrap());
-        println!("extracted from addr -> {}", extracted.from_addr.unwrap());
-        println!("extracted from name -> {}", extracted.from_name.unwrap());
-        println!("extracted text -> {}", extracted.text.unwrap());
-        println!("extracted html -> {}", extracted.html.unwrap());
-        
-        Ok(())
+        Ok(extracted)
     }
 
     async fn fetch_email_raw(&self, token: &str, id: &str) -> Result<Vec<u8>> {
@@ -204,21 +209,15 @@ impl EmailService {
 
     /// load rules based on issuer
     async fn compile_rule(&self, issuer: &str) -> Result<CompiledRule> {
-        let mut yaml: Option<String> = None;
-        match issuer {
-            "youtrip" => {
-                yaml = fs::read_to_string("rules/youtrip.yml").await.ok();
-            },
-            "wise" => {
-                yaml = fs::read_to_string("rules/wise.yml").await.ok();
-            },
-            "trustbank" => {
-                yaml = fs::read_to_string("rules/trustbank.yml").await.ok();
-            },
+        let yaml = match issuer {
+            "youtrip" => fs::read_to_string("rules/youtrip.yml").await.ok(),
+            "wise" => fs::read_to_string("rules/wise.yml").await.ok(),
+            "trustbank" => fs::read_to_string("rules/trustbank.yml").await.ok(),
             _ => bail!("unknown issuer: {}", issuer),
-        }
+        };
 
         if let Some(yaml_str) = yaml {
+            println!("compiled rule: {}", yaml_str);
             let rf: RuleFile = serde_yaml::from_str(&yaml_str)?;
             Ok(CompiledRule {
                 id: rf.id,
@@ -282,7 +281,6 @@ impl EmailService {
 mod tests {
     use super::*;
     use crate::service::models::{CompiledRule, Normalize};
-    use base64::engine::general_purpose::NO_PAD;
     use regex::Regex;
 
     fn svc() -> EmailService { EmailService::new() }

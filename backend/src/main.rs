@@ -15,7 +15,12 @@ async fn main() {
     // let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     // axum::serve(listener, app).await.unwrap();
     let email_svc = service::email_service::EmailService::new();
-    let _ = email_svc.query_and_process_unseen(vec!["".to_string()]).await;
+    let _ = email_svc.query_and_process_unseen(vec![
+        "category:primary".to_string(), 
+        "from:noreply@you.co".to_string(), 
+        "newer_than:7d".to_string()
+    ]).await;
+
 
     println!("Hello, world!");
 }

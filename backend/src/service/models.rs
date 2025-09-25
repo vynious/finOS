@@ -1,6 +1,6 @@
 
 
-use serde::{Deserialize};
+use serde::{Deserialize, Serialize};
 use regex::Regex;
 
 
@@ -33,15 +33,20 @@ pub struct GmailMessage {
     pub thread_id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReceiptList{
+    pub transactions: Vec<Receipt>
+}
 
 
-#[derive(Debug, Deserialize)]
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Receipt {
-    pub id: String, // Gmail message ID
-    pub issuer: String,
-    pub merchant: String,
-    pub amount: String,
-    pub currency: String,
+    pub id: Option<String>, // Gmail message ID
+    pub issuer: Option<String>,
+    pub merchant: Option<String>,
+    pub amount: Option<f64>,
+    pub currency: Option<String>,
 }
 
 

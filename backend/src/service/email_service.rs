@@ -4,10 +4,13 @@ use mail_parser::{MessageParser, Message, HeaderValue};
 use reqwest::Client;
 use regex::Regex;
 use serde::{Deserialize};
-use anyhow::{Result, Context, bail};
+use anyhow::{bail, Context, Ok, Result};
 use tokio::fs;
 use yup_oauth2::{ApplicationSecret, InstalledFlowAuthenticator, AccessToken};
+use scraper::{Html, Selector};
+use ollama_rs::{generation::completion::request::GenerationRequest, Ollama};
 use super::models::*;
+
 
 fn decode_base64url(s: &str) -> Result<Vec<u8>> {
     let mut s = s.replace('-', "+").replace('_', "/");
@@ -18,13 +21,17 @@ fn decode_base64url(s: &str) -> Result<Vec<u8>> {
 
 
 pub struct EmailService {
-    client: Client
+    client: Client,
+    ollama: Ollama
 }
 
 
 impl EmailService {
     pub fn new() -> Self {
-        EmailService { client:reqwest::Client::new() }
+        EmailService { 
+            client:reqwest::Client::new(),
+            ollama: Ollama::default()
+        }
     }
 
     // TODO: 
@@ -56,14 +63,16 @@ impl EmailService {
 
         // add into seen emails
         for email in filtered_emails {
-                seen_emails.insert(email.id.to_string());
-                let parsed_email_content = self.fetch_and_parse_email(&token_str, &email.id).await?;
-                let text = parsed_email_content.html
-                    .map(|html| self.html_to_text(&html))
-                    .unwrap_or_else(|| parsed_email_content.text.unwrap_or_default());
-                let compiled_rule = self.compile_rule("youtrip").await?;
-                let receipts = self.parse_with_rule(&email.id, &compiled_rule, "youtrip", &text);
-                println!("size {}", receipts.len());
+            println!("checking email: {}", email.id);
+            seen_emails.insert(email.id.to_string());
+            let parsed_email_content = self.fetch_and_parse_email(&token_str, &email.id).await?;
+            let receipts = self.parse_with_ollmao(&email.id, &parsed_email_content.html.unwrap(), "YouTrip").await?;
+            for receipt in receipts.transactions {
+                println!("{}", receipt.merchant.unwrap());
+                println!("{}", receipt.currency.unwrap());
+                println!("{}", receipt.amount.unwrap());
+                println!("{}", receipt.id.unwrap());
+            }
         }
 
 
@@ -191,9 +200,31 @@ impl EmailService {
 
 
     fn html_to_text(&self, html: &str) -> String {
-        //  join all text nodes.
+        // 1) extract all text nodes
         let doc = scraper::Html::parse_document(html);
-        doc.root_element().text().collect::<Vec<_>>().join("\n")
+        let mut t = doc.root_element().text().collect::<Vec<_>>().join("\n");
+
+        // 2) common entity/char fixes (quoted-printable should be decoded earlier in your mail layer)
+        t = t.replace('\u{00a0}', " ")  // nbsp
+            .replace('\u{200b}', "");  // zero-width space
+
+        // 4) collapse runs of spaces/tabs *within a line* but keep newlines
+        let re_intraline = Regex::new(r"[ \t]+").unwrap();
+        t = re_intraline.replace_all(&t, " ").to_string();
+
+        // 5) collapse excessive newlines to a single newline (table cells → many tiny lines)
+        let re_newlines = Regex::new(r"\n{2,}").unwrap();
+        t = re_newlines.replace_all(&t, "\n").to_string();
+
+        // 6) trim each line and drop empties so "visual rows" become parseable lines
+        let lines: Vec<String> = t
+            .lines()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty())
+            .map(|l| l.to_string())
+            .collect();
+
+        lines.join("\n")
     }
 
     fn canonicalize_amount(&self, amount_raw: &str) -> String {
@@ -217,7 +248,6 @@ impl EmailService {
         };
 
         if let Some(yaml_str) = yaml {
-            println!("compiled rule: {}", yaml_str);
             let rf: RuleFile = serde_yaml::from_str(&yaml_str)?;
             Ok(CompiledRule {
                 id: rf.id,
@@ -241,37 +271,20 @@ impl EmailService {
         }.to_string())
     }
 
-    fn parse_with_rule(&self, id: &str, rule: &CompiledRule, issuer: &str, text: &str) -> Vec<Receipt> {
-        // Split into reasonably sized lines/blocks
-        let processed = text
-            .replace('\u{00a0}', " ")
-            .replace('\u{200b}', "");
-        let lines: Vec<&str> = processed
-            .lines()
-            .map(|l| l.trim())
-            .filter(|l| !l.is_empty())
-            .collect();
-
-        let mut out = Vec::new();
-
-        for line in &lines {
-            for re in &rule.patterns {
-                if let Some(c) = re.captures(line) {
-                    let merchant = c.name("merchant").map(|m| m.as_str().trim().to_string());
-                    let currency_raw = c.name("currency").map(|m| m.as_str()).unwrap_or("");
-                    let amount_raw = c.name("amount").map(|m| m.as_str()).unwrap_or("");
-
-                    if let (Some(merchant), true) = (merchant, !amount_raw.is_empty()) {
-                        let amount = self.canonicalize_amount(amount_raw);
-                        let currency = self.map_currency(currency_raw, rule.norm.currency_from_symbol)
-                            .unwrap_or_else(|| "XXX".to_string());
-                        out.push(Receipt { id: id.to_string(), issuer: issuer.to_string(), merchant, currency, amount });
-                    }
-                }
-            }
-        }
-        out
+    async fn parse_with_ollmao(&self, id: &str, raw: &str, issuer: &str) -> Result<ReceiptList>{
+        println!("trying to parse with ollama");
+        let text = self.html_to_text(raw);
+        let model = "llama3.1:latest".to_string();
+        let prompt = format!("Issuer is {}. Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{ 'id': '...', 'merchant': '...', 'amount': 0.0, 'currency': '...', 'issuer': '...' }} ] }}",issuer, text);
+        let res = self.ollama
+            .generate(GenerationRequest::new(model, prompt)
+            .format(ollama_rs::generation::parameters::FormatType::Json))
+            .await?;
+        println!("ollama response: {}", res.response);
+        let val: ReceiptList = serde_json::from_str(&res.response)?;
+        Ok(val)
     }
+
 }
         
         
@@ -302,28 +315,28 @@ mod tests {
     }
 
     #[test]
-    fn parse_with_rule_extracts_receipt() {
-        let s = svc();
-        let rule = CompiledRule {
-            id: "youtrip".to_string(),
-            from_contains: vec!["noreply@youtrip.com".to_string()],
-            subject_re: None,
-            patterns: vec![
-                Regex::new(r"(?i)paid\s+(?P<currency>sgd|\$)\s*(?P<amount>\d+(?:[.,]\d{2})?)\s+at\s+(?P<merchant>.+)$").unwrap()
-            ],
-            norm: Normalize { currency_from_symbol: true, decimal_heuristics: None, tz: None },
-        };
-        let out = s.parse_with_rule(
-            "msg-1",
-            &rule,
-            "youtrip",
-            "Paid SGD 12.34 at Coffee Bean"
-        );
-        assert_eq!(out.len(), 1);
-        assert_eq!(out[0].merchant, "Coffee Bean");
-        assert_eq!(out[0].currency, "SGD");
-        assert_eq!(out[0].amount, "12.34");
-    }
+    // fn parse_with_rule_extracts_receipt() {
+    //     let s = svc();
+    //     let rule = CompiledRule {
+    //         id: "youtrip".to_string(),
+    //         from_contains: vec!["noreply@youtrip.com".to_string()],
+    //         subject_re: None,
+    //         patterns: vec![
+    //             Regex::new(r"(?i)paid\s+(?P<currency>sgd|\$)\s*(?P<amount>\d+(?:[.,]\d{2})?)\s+at\s+(?P<merchant>.+)$").unwrap()
+    //         ],
+    //         norm: Normalize { currency_from_symbol: true, decimal_heuristics: None, tz: None },
+    //     };
+    //     let out = s.parse_with_rule(
+    //         "msg-1",
+    //         &rule,
+    //         "youtrip",
+    //         "Paid SGD 12.34 at Coffee Bean"
+    //     );
+    //     assert_eq!(out.len(), 1);
+    //     assert_eq!(out[0].merchant, "Coffee Bean");
+    //     assert_eq!(out[0].currency, "SGD");
+    //     assert_eq!(out[0].amount, "12.34");
+    // }
 
     #[test]
     fn applies_checks_from_and_subject() {

@@ -17,8 +17,8 @@ async fn main() {
     let email_svc = service::email_service::EmailService::new();
     let _ = email_svc.query_and_process_unseen(vec![
         "category:primary".to_string(), 
-        "from:noreply@you.co".to_string(), 
-        "newer_than:7d".to_string()
+        "from:from_us@trustbank.sg".to_string(), 
+        "newer_than:20d".to_string()
     ]).await;
 
 

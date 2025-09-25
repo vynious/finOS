@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use base64::Engine;
 use mail_parser::{MessageParser, Message, HeaderValue};
 use reqwest::Client;
-use regex::Regex;
+use regex::{escape, Regex};
 use ego_tree::NodeRef;
 use scraper::{Html, Node};
 use anyhow::{bail, Context, Ok, Result};
@@ -18,6 +18,12 @@ fn decode_base64url(s: &str) -> Result<Vec<u8>> {
     Ok(base64::engine::general_purpose::STANDARD.decode(s)?)
 }
 
+
+
+fn build_keyword_regex(words: &[&str]) -> Regex {
+    let body = words.iter().map(|w| escape(w)).collect::<Vec<_>>().join("|");
+    Regex::new(&format!(r"(?i)\b(?:{})\b", body)).unwrap()
+}
 
 
 pub struct EmailService {
@@ -60,12 +66,17 @@ impl EmailService {
         .iter()
         .filter(|email| !seen_emails.contains(&email.id))
         .collect();
-
+        let re = build_keyword_regex(&["transaction", "spent", "payment"]);
         // add into seen emails
         for email in filtered_emails {
             println!("checking email: {}", email.id);
             seen_emails.insert(email.id.to_string());
             let parsed_email_content = self.fetch_and_parse_email(&token_str, &email.id).await?;
+            // check if email subject is something we want to parse 
+            if !re.is_match(parsed_email_content.subject.as_deref().unwrap()) {
+                println!("skipped 1... {}", parsed_email_content.subject.as_deref().unwrap());
+                continue;
+            }
             let receipts = self.parse_with_ollmao(&email.id, &parsed_email_content.html.unwrap(), parsed_email_content.from_name.as_deref().unwrap()).await?;
             for receipt in receipts.transactions {
                 println!("Issuer: {}", receipt.issuer.unwrap());
@@ -253,9 +264,8 @@ impl EmailService {
     async fn parse_with_ollmao(&self, id: &str, raw: &str, issuer: &str) -> Result<ReceiptList>{
         println!("trying to parse with ollama");
         let text = self.html_to_text(raw);
-        println!("text: {}", text);
-        let model = "llama3.1:latest".to_string();
-        let prompt = format!("Issuer is {}. Use this {} as the ID and ignore the one in the text. Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{ 'id': '...', 'merchant': '...', 'amount': 0.0, 'currency': '...', 'issuer': '...' }} ] }}", issuer, id, text);
+        let model = "qwen2.5:7b".to_string();
+        let prompt = format!("Issuer: {}. Use this {} as the ID and ignore the one in the text. Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{ 'id': '...', 'merchant': '...', 'amount': 0.0, 'currency': '...', 'issuer': '...' }} ] }}", issuer, id, text);
         let res = self.ollama
             .generate(GenerationRequest::new(model, prompt)
             .format(ollama_rs::generation::parameters::FormatType::Json))

@@ -15,7 +15,7 @@ async fn main() {
     // let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     // axum::serve(listener, app).await.unwrap();
     let email_svc = service::email_service::EmailService::new();
-    let _ = email_svc.query_and_process_unseen(vec![
+    let _ = email_svc.query_and_process_untracked(vec![
         "category:primary".to_string(), 
         "from:(noreply@wise.com OR from_us@trustbank.sg OR noreply@you.co)".to_string(), 
         "newer_than:7d".to_string()

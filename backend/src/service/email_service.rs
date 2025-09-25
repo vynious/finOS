@@ -54,7 +54,7 @@ impl EmailService {
         Ok(())
     }
 
-    pub async fn query_and_process_unseen(&self, queries: Vec<String>) -> Result<ReceiptList> {
+    pub async fn query_and_process_untracked(&self, queries: Vec<String>) -> Result<ReceiptList> {
         // authentication
         // get all emails based on given query
         // filter to get untracked emails

@@ -34,6 +34,8 @@ pub struct EmailService {
 
 
 impl EmailService {
+    /// Creates a new `EmailService`, loading `OLLAMA_MODEL` from the environment
+    /// and initializing the HTTP and Ollama clients.
     pub fn new() -> Self {
         EmailService { 
             model_name: env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
@@ -42,18 +44,23 @@ impl EmailService {
         }
     }
 
-    /// TODO: Call DB 
-    /// Get operation for seen_emails
+    /// Returns the set of previously processed (tracked) email IDs.
+    ///
+    /// TODO: Replace stub with DB-backed retrieval.
     async fn get_tracked_emails(&self) -> Result<HashSet<String>> {
         Ok(HashSet::new())
     }
 
-    /// TODO: Call DB
-    /// Update operation for the seened emails
+    /// Persists the provided tracked email IDs.
+    ///
+    /// TODO: Replace stub with DB-backed persistence.
     async fn update_tracked_emails(&self, tracked_emails: HashSet<String>) -> Result<()> {
         Ok(())
     }
 
+    /// Queries Gmail using the provided search terms, fetches and parses
+    /// untracked messages, extracts receipts with Ollama, and returns all
+    /// parsed transactions. Updates the tracked email IDs afterward.
     pub async fn query_and_process_untracked(&self, queries: Vec<String>) -> Result<ReceiptList> {
         // authentication
         // get all emails based on given query
@@ -118,6 +125,8 @@ impl EmailService {
     /// Lists all the Messages based on the given queries.
     /// Automatically runs pagination based on the returned response
     /// For Gmail API
+    /// Lists Gmail messages matching the query string, following pagination
+    /// until all pages are retrieved.
     async fn list_all_messages(&self, token: &str, combined_queries: &str) -> Result<Vec<GmailMessage>> {
         let mut all_messages: Vec<GmailMessage> = Vec::new();
         let mut current_page_token: Option<String> = None;
@@ -151,6 +160,7 @@ impl EmailService {
 
 
     /// Runs authentication based on the client_secret and returns the AccessToken
+    /// Performs OAuth installed-flow and returns a Gmail Readonly access token.
     async fn authenticate(&self) -> Result<AccessToken> {
         // load client secret  
         println!("Running email authentication");
@@ -175,6 +185,8 @@ impl EmailService {
     }
 
     /// Retrieves the email based on the GmailMessage ID and extracts the content
+    /// Fetches a Gmail message by ID and extracts normalized content
+    /// (subject, from, text, html).
     async fn fetch_and_parse_email(&self, token: &str, id: &str) -> Result<ParsedEmailContent> {   
         let bytes = self.fetch_email_raw(token, id).await?;
         let message = self.parse_message(&bytes);
@@ -182,6 +194,7 @@ impl EmailService {
         Ok(extracted)
     }
 
+    /// Downloads raw RFC822 bytes of a Gmail message and base64url-decodes them.
     async fn fetch_email_raw(&self, token: &str, id: &str) -> Result<Vec<u8>> {
         let url = format!("https://gmail.googleapis.com/gmail/v1/users/me/messages/{}?format=raw", id);
         let raw_msg: RawGmailMessage = self.client.get(&url)
@@ -193,11 +206,13 @@ impl EmailService {
     }
 
 
+    /// Parses RFC822 bytes into a `mail_parser::Message`.
     fn parse_message<'a>(&self, bytes: &'a [u8]) -> mail_parser::Message<'a> {
         MessageParser::default().parse(bytes).expect("parse email")
     }
 
 
+    /// Extracts high-level fields into `ParsedEmailContent` for downstream use.
     fn extract_email_content(&self, parsed: &Message<'_>) -> ParsedEmailContent {
         let subject = parsed.subject().map(|s| s.to_string());
         let (from_name, from_addr) = parsed.from()
@@ -217,6 +232,8 @@ impl EmailService {
     }
 
 
+    /// Converts HTML into visible text by traversing the DOM and removing
+    /// non-visible nodes and redundant whitespace/newlines.
     fn html_to_text(&self, html: &str) -> String {
         let doc = Html::parse_document(html);
 
@@ -273,6 +290,8 @@ impl EmailService {
 
 
 
+    /// Uses the configured Ollama model to extract structured `ReceiptList`
+    /// from email HTML by prompting an LLM and parsing JSON output.
     async fn parse_with_ollmao(&self, id: &str, raw: &str, issuer: &str) -> Result<ReceiptList>{
         println!("Parsing with Ollama: {}", self.model_name);
         let text = self.html_to_text(raw);

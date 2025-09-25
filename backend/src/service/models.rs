@@ -48,39 +48,3 @@ pub struct Receipt {
     pub amount: Option<f64>,
     pub currency: Option<String>,
 }
-
-
-#[derive(Debug, Deserialize)]
-pub struct RuleFile {
-    pub id: String,
-    pub detect: Detect,
-    pub extract: Extract,
-    pub normalize: Normalize,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Detect {
-    pub from_contains: Vec<String>,
-    pub subject_re: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Extract {
-    // run these patterns against text lines/blocks
-    pub patterns: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Normalize {
-    pub currency_from_symbol: bool,
-    pub decimal_heuristics: Option<String>, // "eu-vs-us"
-    pub tz: Option<String>,
-}
-
-pub struct CompiledRule {
-    pub id: String,
-    pub from_contains: Vec<String>,
-    pub subject_re: Option<Regex>,
-    pub patterns: Vec<Regex>,
-    pub norm: Normalize,
-}

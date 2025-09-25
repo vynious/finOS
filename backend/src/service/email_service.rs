@@ -3,11 +3,11 @@ use base64::Engine;
 use mail_parser::{MessageParser, Message, HeaderValue};
 use reqwest::Client;
 use regex::Regex;
-use serde::{Deserialize};
+use ego_tree::NodeRef;
+use scraper::{Html, Node};
 use anyhow::{bail, Context, Ok, Result};
 use tokio::fs;
 use yup_oauth2::{ApplicationSecret, InstalledFlowAuthenticator, AccessToken};
-use scraper::{Html, Selector};
 use ollama_rs::{generation::completion::request::GenerationRequest, Ollama};
 use super::models::*;
 
@@ -66,12 +66,13 @@ impl EmailService {
             println!("checking email: {}", email.id);
             seen_emails.insert(email.id.to_string());
             let parsed_email_content = self.fetch_and_parse_email(&token_str, &email.id).await?;
-            let receipts = self.parse_with_ollmao(&email.id, &parsed_email_content.html.unwrap(), "YouTrip").await?;
+            let receipts = self.parse_with_ollmao(&email.id, &parsed_email_content.html.unwrap(), parsed_email_content.from_name.as_deref().unwrap()).await?;
             for receipt in receipts.transactions {
-                println!("{}", receipt.merchant.unwrap());
-                println!("{}", receipt.currency.unwrap());
-                println!("{}", receipt.amount.unwrap());
-                println!("{}", receipt.id.unwrap());
+                println!("Issuer: {}", receipt.issuer.unwrap());
+                println!("Merchant: {}", receipt.merchant.unwrap());
+                println!("Currency: {}", receipt.currency.unwrap());
+                println!("Amount: {}", receipt.amount.unwrap());
+                println!("ID: {}", receipt.id.unwrap());
             }
         }
 
@@ -191,91 +192,70 @@ impl EmailService {
             html
         }
     }
-    
-    fn applies(&self, rule: &CompiledRule, from: &str, subject: &str) -> bool {
-        let from_ok = rule.from_contains.iter().any(|s| from.contains(s));
-        let subj_ok = rule.subject_re.as_ref().map(|re| re.is_match(subject)).unwrap_or(true);
-        from_ok && subj_ok
-    }
 
 
     fn html_to_text(&self, html: &str) -> String {
-        // 1) extract all text nodes
-        let doc = scraper::Html::parse_document(html);
-        let mut t = doc.root_element().text().collect::<Vec<_>>().join("\n");
+        let doc = Html::parse_document(html);
 
-        // 2) common entity/char fixes (quoted-printable should be decoded earlier in your mail layer)
-        t = t.replace('\u{00a0}', " ")  // nbsp
-            .replace('\u{200b}', "");  // zero-width space
+        // gather text by walking the DOM and skipping non-visible containers.
+        // remove css styles and html syntax stuff.
+        let mut buf = String::new();
+        fn walk(n: NodeRef<Node>, out: &mut String) {
+            match n.value() {
+                Node::Text(t) => {
+                    out.push_str(t);
+                }
+                Node::Element(el) => {
+                    let name = el.name();
+                    // skip non-visible content entirely
+                    if matches!(name, "style" | "script" | "noscript" | "template" | "head") {
+                        return;
+                    }
+                    // Line breaks for some block-ish tags
+                    if matches!(name, "br" | "p" | "div" | "li" | "tr" | "section" | "article" |
+                                    "header" | "footer" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6") {
+                        if !out.ends_with('\n') { out.push('\n'); }
+                    }
+                    for c in n.children() { walk(c, out); }
+                    if matches!(name, "p" | "div" | "li" | "tr" | "section" | "article") {
+                        if !out.ends_with('\n') { out.push('\n'); }
+                    }
+                    return;
+                }
+                _ => {}
+            }
+            for c in n.children() { walk(c, out); }
+        }
+        walk(doc.tree.root(), &mut buf);
 
-        // 4) collapse runs of spaces/tabs *within a line* but keep newlines
+        // char fixes
+        let mut t = buf.replace('\u{00a0}', " ")  // nbsp
+                    .replace('\u{200b}', ""); // zero-width
+
+        // collapse intra-line spaces; keep newlines
         let re_intraline = Regex::new(r"[ \t]+").unwrap();
-        t = re_intraline.replace_all(&t, " ").to_string();
+        t = re_intraline.replace_all(&t, " ").into_owned();
 
-        // 5) collapse excessive newlines to a single newline (table cells → many tiny lines)
+        // collapse multiple newlines
         let re_newlines = Regex::new(r"\n{2,}").unwrap();
-        t = re_newlines.replace_all(&t, "\n").to_string();
+        t = re_newlines.replace_all(&t, "\n").into_owned();
 
-        // 6) trim each line and drop empties so "visual rows" become parseable lines
-        let lines: Vec<String> = t
-            .lines()
+        // trim lines & drop empties
+        t.lines()
             .map(|l| l.trim())
             .filter(|l| !l.is_empty())
-            .map(|l| l.to_string())
-            .collect();
-
-        lines.join("\n")
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
-    fn canonicalize_amount(&self, amount_raw: &str) -> String {
-        let mut s = amount_raw.trim().replace(' ', "");
-        let has_dot = s.contains('.');
-        let has_comma = s.contains(',');
-        let dec_is_comma =
-            (has_dot && has_comma && s.rfind(',') > s.rfind('.')) || (!has_dot && has_comma);
-        if dec_is_comma { s = s.replace('.', ""); s = s.replace(',', "."); }
-        else { s = s.replace(',', ""); }
-        s
-    }
 
-    /// load rules based on issuer
-    async fn compile_rule(&self, issuer: &str) -> Result<CompiledRule> {
-        let yaml = match issuer {
-            "youtrip" => fs::read_to_string("rules/youtrip.yml").await.ok(),
-            "wise" => fs::read_to_string("rules/wise.yml").await.ok(),
-            "trustbank" => fs::read_to_string("rules/trustbank.yml").await.ok(),
-            _ => bail!("unknown issuer: {}", issuer),
-        };
-
-        if let Some(yaml_str) = yaml {
-            let rf: RuleFile = serde_yaml::from_str(&yaml_str)?;
-            Ok(CompiledRule {
-                id: rf.id,
-                from_contains: rf.detect.from_contains,
-                subject_re: rf.detect.subject_re.map(|s| Regex::new(&s)).transpose()?,
-                patterns: rf.extract.patterns.into_iter().map(|p| Regex::new(&p)).collect::<Result<_, _>>()?,
-                norm: rf.normalize,
-            })
-        } else {
-            bail!("rule file not found for issuer: {}", issuer);
-        }
-
-    }
-        
-    fn map_currency(&self, cur: &str, allow_symbol: bool) -> Option<String> {
-        let c = cur.trim();
-        if c.len() == 3 { return Some(c.to_uppercase()); }
-        if !allow_symbol { return None; }
-        Some(match c {
-            "€" => "EUR", "$" => "USD", "£" => "GBP", "¥" => "JPY", "S$" => "SGD", _ => "UNKNOWN"
-        }.to_string())
-    }
 
     async fn parse_with_ollmao(&self, id: &str, raw: &str, issuer: &str) -> Result<ReceiptList>{
         println!("trying to parse with ollama");
         let text = self.html_to_text(raw);
+        println!("text: {}", text);
         let model = "llama3.1:latest".to_string();
-        let prompt = format!("Issuer is {}. Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{ 'id': '...', 'merchant': '...', 'amount': 0.0, 'currency': '...', 'issuer': '...' }} ] }}",issuer, text);
+        let prompt = format!("Issuer is {}. Use this {} as the ID and ignore the one in the text. Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{ 'id': '...', 'merchant': '...', 'amount': 0.0, 'currency': '...', 'issuer': '...' }} ] }}", issuer, id, text);
         let res = self.ollama
             .generate(GenerationRequest::new(model, prompt)
             .format(ollama_rs::generation::parameters::FormatType::Json))
@@ -285,71 +265,4 @@ impl EmailService {
         Ok(val)
     }
 
-}
-        
-        
-    
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::service::models::{CompiledRule, Normalize};
-    use regex::Regex;
-
-    fn svc() -> EmailService { EmailService::new() }
-
-    #[test]
-    fn canonicalize_amount_handles_commas_and_dots() {
-        let s = svc();
-        assert_eq!(s.canonicalize_amount("1,234.56"), "1234.56");
-        assert_eq!(s.canonicalize_amount("1.234,56"), "1234.56");
-        assert_eq!(s.canonicalize_amount("  12 345  "), "12345");
-    }
-
-    #[test]
-    fn map_currency_from_code_and_symbol() {
-        let s = svc();
-        assert_eq!(s.map_currency("sgd", true).as_deref(), Some("SGD"));
-        assert_eq!(s.map_currency("S$", true).as_deref(), Some("SGD"));
-        assert_eq!(s.map_currency("$", false), None);
-    }
-
-    #[test]
-    // fn parse_with_rule_extracts_receipt() {
-    //     let s = svc();
-    //     let rule = CompiledRule {
-    //         id: "youtrip".to_string(),
-    //         from_contains: vec!["noreply@youtrip.com".to_string()],
-    //         subject_re: None,
-    //         patterns: vec![
-    //             Regex::new(r"(?i)paid\s+(?P<currency>sgd|\$)\s*(?P<amount>\d+(?:[.,]\d{2})?)\s+at\s+(?P<merchant>.+)$").unwrap()
-    //         ],
-    //         norm: Normalize { currency_from_symbol: true, decimal_heuristics: None, tz: None },
-    //     };
-    //     let out = s.parse_with_rule(
-    //         "msg-1",
-    //         &rule,
-    //         "youtrip",
-    //         "Paid SGD 12.34 at Coffee Bean"
-    //     );
-    //     assert_eq!(out.len(), 1);
-    //     assert_eq!(out[0].merchant, "Coffee Bean");
-    //     assert_eq!(out[0].currency, "SGD");
-    //     assert_eq!(out[0].amount, "12.34");
-    // }
-
-    #[test]
-    fn applies_checks_from_and_subject() {
-        let s = svc();
-        let rule = CompiledRule {
-            id: "x".to_string(),
-            from_contains: vec!["bank.com".to_string()],
-            subject_re: Some(Regex::new(r"(?i)receipt").unwrap()),
-            patterns: vec![],
-            norm: Normalize { currency_from_symbol: true, decimal_heuristics: None, tz: None },
-        };
-        assert!(s.applies(&rule, "no-reply@bank.com", "Your receipt is ready"));
-        assert!(!s.applies(&rule, "no-reply@shop.com", "Your receipt is ready"));
-        assert!(!s.applies(&rule, "no-reply@bank.com", "Statement"));
-    }
 }

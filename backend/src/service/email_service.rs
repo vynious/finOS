@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, vec};
 use base64::Engine;
 use mail_parser::{MessageParser, Message, HeaderValue};
 use reqwest::Client;
@@ -41,12 +41,12 @@ impl EmailService {
     }
 
     // TODO: 
-    pub async fn query_and_process_unseen(&self, queries: Vec<String>) -> Result<()> {
+    pub async fn query_and_process_unseen(&self, queries: Vec<String>) -> Result<ReceiptList> {
         // authentication
         // get all emails based on given query
         // filter to get untracked emails
-        let mut emails = Vec::new();
-        let mut seen_emails: HashSet<String> = HashSet::new();
+        let mut tracked_emails: HashSet<String> = self.get_tracked_emails().await?;
+        let mut all_receipts : ReceiptList = ReceiptList { transactions: Vec::new() };
 
         // get authenticated token
         let token = self.authenticate().await?;
@@ -58,48 +58,44 @@ impl EmailService {
         };
 
         // get email ids by queries
-        println!("parsing token: {}", token_str);
-        emails = self.list_all_messages(&token_str, &queries.join(" ")).await?;
+        let emails = self.list_all_messages(&token_str, &queries.join(" ")).await?;
 
         // omit out emails that are seen
-        let filtered_emails: Vec<&GmailMessage> = emails
+        let untracked_emails: Vec<&GmailMessage> = emails
         .iter()
-        .filter(|email| !seen_emails.contains(&email.id))
+        .filter(|email| !tracked_emails.contains(&email.id))
         .collect();
+
+        // build regex for filtering unwanted emails without these keywords
         let re = build_keyword_regex(&["transaction", "spent", "payment"]);
+
+
         // add into seen emails
-        for email in filtered_emails {
+        for email in untracked_emails {
             println!("checking email: {}", email.id);
-            seen_emails.insert(email.id.to_string());
+            tracked_emails.insert(email.id.to_string());
             let parsed_email_content = self.fetch_and_parse_email(&token_str, &email.id).await?;
+            
             // check if email subject is something we want to parse 
             if !re.is_match(parsed_email_content.subject.as_deref().unwrap()) {
                 println!("skipped 1... {}", parsed_email_content.subject.as_deref().unwrap());
                 continue;
             }
+
+            // get receipts from ollama
             let receipts = self.parse_with_ollmao(&email.id, &parsed_email_content.html.unwrap(), parsed_email_content.from_name.as_deref().unwrap()).await?;
+            
+            // save the receipts
             for receipt in receipts.transactions {
-                println!("Issuer: {}", receipt.issuer.unwrap());
-                println!("Merchant: {}", receipt.merchant.unwrap());
-                println!("Currency: {}", receipt.currency.unwrap());
-                println!("Amount: {}", receipt.amount.unwrap());
-                println!("ID: {}", receipt.id.unwrap());
+                // println!("Issuer: {}", receipt.issuer.unwrap());
+                // println!("Merchant: {}", receipt.merchant.unwrap());
+                // println!("Currency: {}", receipt.currency.unwrap());
+                // println!("Amount: {}", receipt.amount.unwrap());
+                // println!("ID: {}", receipt.id.unwrap());
+                all_receipts.transactions.push(receipt);
             }
         }
-
-
-
-
-        // TODO:
-        // iterate over the new emails, retrieve its details and do additional 
-        // filtering on the type of email, if its a receipt of a transaction/payment 
-        // parse the details out into a Transaction struct and store into the database
-        // we should also store the latest processed email, so when we poll we can poll 
-        // from that timestamp onwards this acts like a checkpoint to 
-        // optimise the retrieval of the emails.
-
-
-        Ok(())
+        Ok(all_receipts)
     }
 
     /// Lists all the Messages based on the given queries.
@@ -128,7 +124,6 @@ impl EmailService {
             
             if let Some(tok) = resp.next_page_token {
                 current_page_token = Some(tok);
-                break;
             } else{ 
                 break;
             }
@@ -275,4 +270,15 @@ impl EmailService {
         Ok(val)
     }
 
+    /// TODO: Call DB 
+    /// Get operation for seen_emails
+    async fn get_tracked_emails(&self) -> Result<HashSet<String>> {
+        Ok(HashSet::new())
+    }
+
+    /// TODO: Call DB
+    /// Update operation for the seened emails
+    async fn update_tracked_emails(&self, tracked_emails: HashSet<String>) -> Result<()> {
+        Ok(())
+    }
 }

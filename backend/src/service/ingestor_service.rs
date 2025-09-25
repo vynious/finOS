@@ -3,6 +3,7 @@ use crate::service::{email_service::{self, EmailService}, receipt_service::Recei
 
 
 /// TODO: 
+/// 
 /// Ingestor service should be run with a cronjob
 /// to process and track emails relating to receipts
 /// by calling EmailService's functions and stores the
@@ -13,10 +14,10 @@ pub struct IngestorService {
 }
 
 impl IngestorService {
-    pub fn new() -> Self {
+    pub fn new(model_name: String) -> Self {
         IngestorService { 
             receipt_service: ReceiptService::new(), 
-            email_service: EmailService::new() 
+            email_service: EmailService::new(model_name) 
         }
     }
 

@@ -36,9 +36,9 @@ pub struct EmailService {
 impl EmailService {
     /// Creates a new `EmailService`, loading `OLLAMA_MODEL` from the environment
     /// and initializing the HTTP and Ollama clients.
-    pub fn new() -> Self {
+    pub fn new(model_name: String) -> Self {
         EmailService { 
-            model_name: env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
+            model_name: model_name,
             client:reqwest::Client::new(),
             ollama: Ollama::default()
         }

@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, vec};
+use std::{collections::{HashMap, HashSet}, env, vec};
 use base64::Engine;
 use mail_parser::{MessageParser, Message, HeaderValue};
 use reqwest::Client;
@@ -28,19 +28,32 @@ fn build_keyword_regex(words: &[&str]) -> Regex {
 
 pub struct EmailService {
     client: Client,
-    ollama: Ollama
+    ollama: Ollama,
+    model_name: String
 }
 
 
 impl EmailService {
     pub fn new() -> Self {
         EmailService { 
+            model_name: env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
             client:reqwest::Client::new(),
             ollama: Ollama::default()
         }
     }
 
-    // TODO: 
+    /// TODO: Call DB 
+    /// Get operation for seen_emails
+    async fn get_tracked_emails(&self) -> Result<HashSet<String>> {
+        Ok(HashSet::new())
+    }
+
+    /// TODO: Call DB
+    /// Update operation for the seened emails
+    async fn update_tracked_emails(&self, tracked_emails: HashSet<String>) -> Result<()> {
+        Ok(())
+    }
+
     pub async fn query_and_process_unseen(&self, queries: Vec<String>) -> Result<ReceiptList> {
         // authentication
         // get all emails based on given query
@@ -54,8 +67,10 @@ impl EmailService {
         // derive token string once
         let token_str = match token.token() {
             Some(ts) => ts.to_string(),
-            None => bail!("failed to obtain access token"),
+            None => bail!("Failed to obtain access token"),
         };
+
+        println!("Getting emails based on queries");
 
         // get email ids by queries
         let emails = self.list_all_messages(&token_str, &queries.join(" ")).await?;
@@ -72,13 +87,13 @@ impl EmailService {
 
         // add into seen emails
         for email in untracked_emails {
-            println!("checking email: {}", email.id);
+            println!("Checking email: {}", email.id);
             tracked_emails.insert(email.id.to_string());
             let parsed_email_content = self.fetch_and_parse_email(&token_str, &email.id).await?;
             
             // check if email subject is something we want to parse 
             if !re.is_match(parsed_email_content.subject.as_deref().unwrap()) {
-                println!("skipped 1... {}", parsed_email_content.subject.as_deref().unwrap());
+                println!("Skipping {}", parsed_email_content.subject.as_deref().unwrap());
                 continue;
             }
 
@@ -95,6 +110,8 @@ impl EmailService {
                 all_receipts.transactions.push(receipt);
             }
         }
+        // update tracked emails
+        self.update_tracked_emails(tracked_emails).await?;
         Ok(all_receipts)
     }
 
@@ -104,7 +121,7 @@ impl EmailService {
     async fn list_all_messages(&self, token: &str, combined_queries: &str) -> Result<Vec<GmailMessage>> {
         let mut all_messages: Vec<GmailMessage> = Vec::new();
         let mut current_page_token: Option<String> = None;
-
+        println!("Combined query: {}", combined_queries);
         // Run pagination on the query
         loop {
                 let mut req = self.client
@@ -128,6 +145,7 @@ impl EmailService {
                 break;
             }
         }
+        println!("Found {} emails to parse", all_messages.len());
         Ok(all_messages)
     }
 
@@ -135,7 +153,7 @@ impl EmailService {
     /// Runs authentication based on the client_secret and returns the AccessToken
     async fn authenticate(&self) -> Result<AccessToken> {
         // load client secret  
-        println!("running email authentication");
+        println!("Running email authentication");
         let secret_str = fs::read_to_string("client_secret_web.json").await.context("parsing web secret")?;
         let secret: ApplicationSecret = serde_json::from_str(&secret_str).map_err(|e| {
             eprintln!("failed to parse {}", e);
@@ -153,7 +171,6 @@ impl EmailService {
         let token = auth
         .token(&["https://www.googleapis.com/auth/gmail.readonly"])
         .await?;
-
         Ok(token)
     }
 
@@ -257,28 +274,16 @@ impl EmailService {
 
 
     async fn parse_with_ollmao(&self, id: &str, raw: &str, issuer: &str) -> Result<ReceiptList>{
-        println!("trying to parse with ollama");
+        println!("Parsing with Ollama: {}", self.model_name);
         let text = self.html_to_text(raw);
-        let model = "qwen2.5:7b".to_string();
         let prompt = format!("Issuer: {}. Use this {} as the ID and ignore the one in the text. Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{ 'id': '...', 'merchant': '...', 'amount': 0.0, 'currency': '...', 'issuer': '...' }} ] }}", issuer, id, text);
         let res = self.ollama
-            .generate(GenerationRequest::new(model, prompt)
+            .generate(GenerationRequest::new(self.model_name.clone(), prompt)
             .format(ollama_rs::generation::parameters::FormatType::Json))
             .await?;
-        println!("ollama response: {}", res.response);
-        let val: ReceiptList = serde_json::from_str(&res.response)?;
-        Ok(val)
+        println!("Ollama response: {}", res.response);
+        let result: ReceiptList = serde_json::from_str(&res.response)?;
+        Ok(result)
     }
 
-    /// TODO: Call DB 
-    /// Get operation for seen_emails
-    async fn get_tracked_emails(&self) -> Result<HashSet<String>> {
-        Ok(HashSet::new())
-    }
-
-    /// TODO: Call DB
-    /// Update operation for the seened emails
-    async fn update_tracked_emails(&self, tracked_emails: HashSet<String>) -> Result<()> {
-        Ok(())
-    }
 }

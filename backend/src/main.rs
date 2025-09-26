@@ -28,13 +28,14 @@ async fn main() -> Result<()> {
     // axum::serve(listener, app).await.unwrap();
 
     // Dependency Injection
-    let email_repo = EmailRepo::new(&new_mongo_client().await?);
+    let mongo_client = new_mongo_client().await?;
+    let email_repo = EmailRepo::new(&mongo_client);
     let email_svc = EmailService::new(
         env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
         email_repo,
     );
 
-    let receipt_repo = ReceiptRepo::new(&new_mongo_client().await?);
+    let receipt_repo = ReceiptRepo::new(&mongo_client);
     let receipt_svc = ReceiptService::new(receipt_repo);
     let ingestor = IngestorService::new(email_svc, receipt_svc);
 

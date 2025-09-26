@@ -1,5 +1,5 @@
 use crate::service::{email_service::{self, EmailService}, receipt_service::ReceiptService};
-
+use crate::db::email_repo::*;
 
 
 /// TODO: 
@@ -14,10 +14,10 @@ pub struct IngestorService {
 }
 
 impl IngestorService {
-    pub fn new(model_name: String) -> Self {
+    pub fn new(model_name: String, email_db_client: EmailRepo) -> Self {
         IngestorService { 
             receipt_service: ReceiptService::new(), 
-            email_service: EmailService::new(model_name) 
+            email_service: EmailService::new(model_name, email_db_client)
         }
     }
 

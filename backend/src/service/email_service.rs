@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, env, vec};
+use std::{collections::{HashMap, HashSet}, env, hash::Hash, vec};
 use base64::Engine;
 use mail_parser::{MessageParser, Message, HeaderValue};
 use reqwest::Client;
@@ -10,7 +10,7 @@ use tokio::fs;
 use yup_oauth2::{ApplicationSecret, InstalledFlowAuthenticator, AccessToken};
 use ollama_rs::{generation::completion::request::GenerationRequest, Ollama};
 use super::models::*;
-
+use crate::db::email_repo::*;
 
 fn decode_base64url(s: &str) -> Result<Vec<u8>> {
     let mut s = s.replace('-', "+").replace('_', "/");
@@ -29,6 +29,7 @@ fn build_keyword_regex(words: &[&str]) -> Regex {
 pub struct EmailService {
     client: Client,
     ollama: Ollama,
+    db_client: EmailRepo,
     model_name: String
 }
 
@@ -36,36 +37,39 @@ pub struct EmailService {
 impl EmailService {
     /// Creates a new `EmailService`, loading `OLLAMA_MODEL` from the environment
     /// and initializing the HTTP and Ollama clients.
-    pub fn new(model_name: String) -> Self {
+    pub fn new(model_name: String, db_client: EmailRepo) -> Self {
         EmailService { 
             model_name: model_name,
             client:reqwest::Client::new(),
-            ollama: Ollama::default()
+            ollama: Ollama::default(),
+            db_client: db_client
         }
     }
 
     /// Returns the set of previously processed (tracked) email IDs.
-    ///
-    /// TODO: Replace stub with DB-backed retrieval.
-    async fn get_tracked_emails(&self) -> Result<HashSet<String>> {
-        Ok(HashSet::new())
+    async fn get_tracked_emails(&self, email_addr: &str) -> Result<HashSet<String>> {
+        println!("Retrieving tracked emails for user: {}", email_addr);
+        if let Some(tracked_emails) = self.db_client.get_tracked_emails(email_addr).await.inspect_err(|e| println!("error: {}", e))? {
+            Ok(tracked_emails.emails.into_iter().collect())
+        } else {
+            Ok(HashSet::new())
+        }
+        
     }
 
     /// Persists the provided tracked email IDs.
-    ///
-    /// TODO: Replace stub with DB-backed persistence.
-    async fn update_tracked_emails(&self, tracked_emails: HashSet<String>) -> Result<()> {
+    async fn update_tracked_emails(&self, email_addr: &str, tracked_emails: HashSet<String>) -> Result<()> {
+        let tracked_emails_list: Vec<String> = tracked_emails.into_iter().collect();
+        self.db_client.set_tracked_emails(email_addr, tracked_emails_list).await?;
         Ok(())
     }
 
     /// Queries Gmail using the provided search terms, fetches and parses
     /// untracked messages, extracts receipts with Ollama, and returns all
     /// parsed transactions. Updates the tracked email IDs afterward.
-    pub async fn query_and_process_untracked(&self, queries: Vec<String>) -> Result<ReceiptList> {
-        // authentication
-        // get all emails based on given query
-        // filter to get untracked emails
-        let mut tracked_emails: HashSet<String> = self.get_tracked_emails().await?;
+    pub async fn query_and_process_untracked(&self, email_addr: &str, queries: Vec<String>) -> Result<ReceiptList> {
+        println!("Processing...");
+        let mut tracked_emails: HashSet<String> = self.get_tracked_emails(email_addr).await?;
         let mut all_receipts : ReceiptList = ReceiptList { transactions: Vec::new() };
 
         // get authenticated token
@@ -118,7 +122,7 @@ impl EmailService {
             }
         }
         // update tracked emails
-        self.update_tracked_emails(tracked_emails).await?;
+        self.update_tracked_emails(email_addr, tracked_emails).await?;
         Ok(all_receipts)
     }
 

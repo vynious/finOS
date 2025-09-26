@@ -61,7 +61,7 @@ impl EmailService {
             .db_client
             .get_tracked_emails(email_addr)
             .await
-            .inspect_err(|e| println!("error: {}", e))?
+            .with_context(|| format!("Getting tracked emails for {}", email_addr))?
         {
             Ok(tracked_emails.emails.into_iter().collect())
         } else {
@@ -78,7 +78,8 @@ impl EmailService {
         let tracked_emails_list: Vec<String> = tracked_emails.into_iter().collect();
         self.db_client
             .set_tracked_emails(email_addr, tracked_emails_list)
-            .await?;
+            .await
+            .with_context(|| format!("Updating tracked emails for {}", email_addr))?;
         Ok(())
     }
 
@@ -223,12 +224,15 @@ impl EmailService {
         )
         .persist_tokens_to_disk("tokencache.json")
         .build()
-        .await?;
+        .await
+        .with_context(|| "Getting auth from secret")?;
+
 
         // get readonly token
         let token = auth
             .token(&["https://www.googleapis.com/auth/gmail.readonly"])
-            .await?;
+            .await
+            .with_context(|| "Getting Access Token")?;
         Ok(token)
     }
 

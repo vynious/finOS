@@ -1,13 +1,13 @@
 use std::env;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use mongodb::{
     bson::{doc, DateTime, Document},
     Client, Collection,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::service::models::{Receipt, ReceiptList};
+use crate::{db::email_repo, service::models::{Receipt, ReceiptList}};
 
 /// TODO:
 ///
@@ -31,7 +31,7 @@ impl ReceiptRepo {
     }
 
     pub async fn insert_receipts(&self, receipts: ReceiptList) -> Result<()> {
-        let _ = self.collection.insert_many(receipts.transactions).await?;
+        let _ = self.collection.insert_many(receipts.transactions).await.context(format!("Failed to insert receipts"))?;
         Ok(())
     }
 

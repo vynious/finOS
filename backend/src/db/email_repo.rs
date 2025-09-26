@@ -1,10 +1,10 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use mongodb::{
     bson::{doc, DateTime, Document},
     Client, Collection,
 };
 use serde::{Deserialize, Serialize};
-use std::env;
+use std::{env, fmt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackedEmails {
@@ -43,11 +43,16 @@ impl EmailRepo {
         self.collection
             .replace_one(filter, to_upsert)
             .upsert(true)
-            .await?;
+            .await
+            .with_context(|| format!("Failed to set tracked emails for {}", email_addr))?;
         Ok(())
     }
 
     pub async fn get_tracked_emails(&self, email_addr: &str) -> Result<Option<TrackedEmails>> {
-        Ok(self.collection.find_one(doc! { "_id": email_addr }).await?)
+        Ok(self
+            .collection
+            .find_one(doc! { "_id": email_addr })
+            .await
+            .with_context(|| format!("Failed to get tracked emails for {}", email_addr))?)
     }
 }

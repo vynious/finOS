@@ -5,13 +5,10 @@ use crate::{
         receipt_service::ReceiptService,
     },
 };
-use anyhow::{Result};
+use anyhow::Result;
 use axum::{routing::get, Router};
 use dotenvy::dotenv;
-use std::{
-    env,
-    sync::Arc,
-};
+use std::{env, sync::Arc};
 use tracing::error;
 mod db;
 mod service;

@@ -49,15 +49,12 @@ impl EmailService {
 
     /// Returns the set of previously processed (tracked) email IDs.
     async fn get_tracked_emails(&self, email_addr: &str) -> Result<HashSet<String>> {
-        // println!("Retrieving tracked emails for user: {}", email_addr);
-        // if let Some(tracked_emails) = self.db_client.get_tracked_emails(email_addr).await.inspect_err(|e| println!("error: {}", e))? {
-        //     Ok(tracked_emails.emails.into_iter().collect())
-        // } else {
-        //     Ok(HashSet::new())
-        // }
-
-        Ok(HashSet::new())
-        
+        println!("Retrieving tracked emails for user: {}", email_addr);
+        if let Some(tracked_emails) = self.db_client.get_tracked_emails(email_addr).await.inspect_err(|e| println!("error: {}", e))? {
+            Ok(tracked_emails.emails.into_iter().collect())
+        } else {
+            Ok(HashSet::new())
+        }
     }
 
     /// Persists the provided tracked email IDs.
@@ -128,7 +125,7 @@ impl EmailService {
         }
 
         println!("All Receipts -> {:#?}",all_receipts);
-        
+
         // update tracked emails
         self.update_tracked_emails(email_addr, tracked_emails).await?;
         Ok(all_receipts)

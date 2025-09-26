@@ -24,7 +24,9 @@ pub struct ReceiptRepo {
 impl ReceiptRepo {
     pub fn new(client: &Client) -> Self {
         ReceiptRepo {
-            collection: client.database(&env::var("DATABASE").expect("Unspecified Database")).collection("receipts"),
+            collection: client
+                .database(&env::var("DATABASE").expect("Unspecified Database"))
+                .collection("receipts"),
         }
     }
 

@@ -1,29 +1,25 @@
 use crate::{
-    db::{
-        conn::new_mongo_client,
-        email_repo::EmailRepo,
-        receipt_repo::{self, ReceiptRepo},
-    },
+    db::{conn::new_mongo_client, email_repo::EmailRepo, receipt_repo::ReceiptRepo},
     service::{
         email_service::EmailService, ingestor_service::IngestorService,
         receipt_service::ReceiptService,
     },
 };
-use anyhow::{Context, Error, Ok, Result};
+use anyhow::{Result};
 use axum::{routing::get, Router};
 use dotenvy::dotenv;
 use std::{
-    collections::{HashMap, HashSet},
-    env, sync::Arc,
+    env,
+    sync::Arc,
 };
-use tracing::{error, info};
+use tracing::error;
 mod db;
 mod service;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    
+
     // Dependency Injection
     let mongo_client = new_mongo_client().await?;
     let email_repo = EmailRepo::new(&mongo_client);
@@ -38,25 +34,33 @@ async fn main() -> Result<()> {
 
     // Async Runtime for Ingestion
     {
-        let ingestor = Arc::clone(&ingestor);
-        let queries = vec![
-            "category:primary".to_string(),
-            "from:(noreply@wise.com OR from_us@trustbank.sg OR noreply@you.co)".to_string(),
-            "newer_than:7d".to_string(), // Query should change based on latest timestamp
-        ];
-        let target = "shawnthiah@gmail.com";
-        tokio::spawn(async move {
-            if let Err(e) = ingestor.sync_receipts(&target, queries).await {
-                error!(error = %e, "ingestor failed");
-                for cause in e.chain().skip(1) {
-                    error!(%cause, "caused by");
+        tokio::spawn({
+            let ingestor2 = Arc::clone(&ingestor);
+
+            // TODO:
+            // currently this runs for a single user (hardcoded),
+            // make the ingestor run an async task for each user registered
+            // and the query will be built based on the latest timestamp stored for each user.
+            let queries = vec![
+                "category:primary".to_string(),
+                "from:(noreply@wise.com OR from_us@trustbank.sg OR noreply@you.co)".to_string(),
+                "newer_than:7d".to_string(), // should change based on latest timestamp
+            ];
+            let target = "shawnthiah@gmail.com";
+
+            async move {
+                if let Err(e) = ingestor2.sync_receipts(&target, queries).await {
+                    error!(error = %e, "ingestor failed");
+                    for cause in e.chain().skip(1) {
+                        error!(%cause, "caused by");
+                    }
                 }
             }
         })
     };
 
-
-    let app = Router::new().route("/", get(|| async {"Hello World"}));
+    // API Components
+    let app = Router::new().route("/", get(|| async { "Hello World" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 

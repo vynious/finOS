@@ -1,6 +1,7 @@
 use std::{collections::{HashMap, HashSet}, env, hash::Hash, vec};
 use base64::Engine;
 use mail_parser::{MessageParser, Message, HeaderValue};
+use mongodb::bson::serde_helpers::timestamp_as_u32;
 use reqwest::Client;
 use regex::{escape, Regex};
 use ego_tree::NodeRef;
@@ -48,12 +49,14 @@ impl EmailService {
 
     /// Returns the set of previously processed (tracked) email IDs.
     async fn get_tracked_emails(&self, email_addr: &str) -> Result<HashSet<String>> {
-        println!("Retrieving tracked emails for user: {}", email_addr);
-        if let Some(tracked_emails) = self.db_client.get_tracked_emails(email_addr).await.inspect_err(|e| println!("error: {}", e))? {
-            Ok(tracked_emails.emails.into_iter().collect())
-        } else {
-            Ok(HashSet::new())
-        }
+        // println!("Retrieving tracked emails for user: {}", email_addr);
+        // if let Some(tracked_emails) = self.db_client.get_tracked_emails(email_addr).await.inspect_err(|e| println!("error: {}", e))? {
+        //     Ok(tracked_emails.emails.into_iter().collect())
+        // } else {
+        //     Ok(HashSet::new())
+        // }
+
+        Ok(HashSet::new())
         
     }
 
@@ -97,6 +100,7 @@ impl EmailService {
 
 
         // add into seen emails
+        // TODO: can run concurrently (my laptop might die.)
         for email in untracked_emails {
             println!("Checking email: {}", email.id);
             tracked_emails.insert(email.id.to_string());
@@ -108,19 +112,23 @@ impl EmailService {
                 continue;
             }
 
+            let issuer = parsed_email_content.from_name.as_deref().unwrap();
+
             // get receipts from ollama
-            let receipts = self.parse_with_ollmao(&email.id, &parsed_email_content.html.unwrap(), parsed_email_content.from_name.as_deref().unwrap()).await?;
+            let receipts = self.parse_with_ollmao(&parsed_email_content.html.unwrap()).await?;
             
             // save the receipts
-            for receipt in receipts.transactions {
-                // println!("Issuer: {}", receipt.issuer.unwrap());
-                // println!("Merchant: {}", receipt.merchant.unwrap());
-                // println!("Currency: {}", receipt.currency.unwrap());
-                // println!("Amount: {}", receipt.amount.unwrap());
-                // println!("ID: {}", receipt.id.unwrap());
+            for mut receipt in receipts.transactions {
+                receipt.msg_id  = Some(email.id.to_string());
+                receipt.issuer = Some(issuer.to_string());
+                receipt.owner = Some(email_addr.to_string());
+                receipt.timestamp = Some(parsed_email_content.timestamp.clone().unwrap());
                 all_receipts.transactions.push(receipt);
             }
         }
+
+        println!("All Receipts -> {:#?}",all_receipts);
+        
         // update tracked emails
         self.update_tracked_emails(email_addr, tracked_emails).await?;
         Ok(all_receipts)
@@ -219,6 +227,7 @@ impl EmailService {
     /// Extracts high-level fields into `ParsedEmailContent` for downstream use.
     fn extract_email_content(&self, parsed: &Message<'_>) -> ParsedEmailContent {
         let subject = parsed.subject().map(|s| s.to_string());
+        let timestamp = parsed.date().map(|dt| dt.to_timestamp());
         let (from_name, from_addr) = parsed.from()
             .and_then(|addrs| {addrs.first()})
             .map(|addr| (addr.name().map(|n| n.to_string()), addr.address().map(|a| a.to_string())))
@@ -231,7 +240,8 @@ impl EmailService {
             from_name,
             from_addr,
             text,
-            html
+            html,
+            timestamp
         }
     }
 
@@ -296,15 +306,15 @@ impl EmailService {
 
     /// Uses the configured Ollama model to extract structured `ReceiptList`
     /// from email HTML by prompting an LLM and parsing JSON output.
-    async fn parse_with_ollmao(&self, id: &str, raw: &str, issuer: &str) -> Result<ReceiptList>{
+    async fn parse_with_ollmao(&self, raw: &str) -> Result<ReceiptList>{
         println!("Parsing with Ollama: {}", self.model_name);
         let text = self.html_to_text(raw);
-        let prompt = format!("Issuer: {}. Use this {} as the ID and ignore the one in the text. Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{ 'id': '...', 'merchant': '...', 'amount': 0.0, 'currency': '...', 'issuer': '...' }} ] }}", issuer, id, text);
+        let prompt = format!("Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{'merchant': '...', 'amount': 0.0, 'currency': '...'}} ] }}", text);
         let res = self.ollama
             .generate(GenerationRequest::new(self.model_name.clone(), prompt)
             .format(ollama_rs::generation::parameters::FormatType::Json))
             .await?;
-        println!("Ollama response: {}", res.response);
+        // println!("Ollama response: {}", res.response);
         let result: ReceiptList = serde_json::from_str(&res.response)?;
         Ok(result)
     }

@@ -5,7 +5,7 @@ use axum::{
     routing::get
 };
 use dotenvy::dotenv;
-
+use tracing::{error, info};
 use crate::db::{conn::new_mongo_client, email_repo::EmailRepo};
 mod service;
 mod db;
@@ -20,13 +20,17 @@ async fn main() -> Result<()>{
         env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
         EmailRepo::new(&new_mongo_client().await?)
     );
-    let _ = email_svc.query_and_process_untracked("shawnthiah@gmail.com", vec![
+
+    // temp logging
+    if let Err(e) = email_svc.query_and_process_untracked("shawnthiah@gmail.com", vec![
         "category:primary".to_string(), 
         "from:(noreply@wise.com OR from_us@trustbank.sg OR noreply@you.co)".to_string(), 
         "newer_than:7d".to_string()
-    ]).await;
-
-
-    println!("Hello, world!");
+    ]).await {
+        error!(error = %e, "fatal");
+        for cause in e.chain().skip(1) { error!(%cause, "caused by"); }
+        std::process::exit(1);
+    }
+    println!("Done!");
     Ok(())
 }

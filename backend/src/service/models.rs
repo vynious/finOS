@@ -14,6 +14,7 @@ pub struct ParsedEmailContent {
     pub from_addr: Option<String>,
     pub text: Option<String>,
     pub html: Option<String>,
+    pub timestamp: Option<i64>
 }
 
 
@@ -40,11 +41,14 @@ pub struct ReceiptList{
 
 
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Receipt {
-    pub id: Option<String>, // Gmail message ID
+    pub msg_id: Option<String>, // Gmail message ID
+    pub owner: Option<String>,
     pub issuer: Option<String>,
     pub merchant: Option<String>,
     pub amount: Option<f64>,
     pub currency: Option<String>,
+    pub categories: Option<Vec<String>>,
+    pub timestamp: Option<i64>
 }

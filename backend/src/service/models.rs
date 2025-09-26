@@ -1,12 +1,11 @@
-
-
-use serde::{Deserialize, Serialize};
 use regex::Regex;
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
-pub struct RawGmailMessage { pub id: String, pub raw: String }
-
+pub struct RawGmailMessage {
+    pub id: String,
+    pub raw: String,
+}
 
 pub struct ParsedEmailContent {
     pub subject: Option<String>,
@@ -14,9 +13,8 @@ pub struct ParsedEmailContent {
     pub from_addr: Option<String>,
     pub text: Option<String>,
     pub html: Option<String>,
-    pub timestamp: Option<i64>
+    pub timestamp: Option<i64>,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct GmailMessagesResponse {
@@ -35,11 +33,9 @@ pub struct GmailMessage {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ReceiptList{
-    pub transactions: Vec<Receipt>
+pub struct ReceiptList {
+    pub transactions: Vec<Receipt>,
 }
-
-
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Receipt {
@@ -50,5 +46,5 @@ pub struct Receipt {
     pub amount: Option<f64>,
     pub currency: Option<String>,
     pub categories: Option<Vec<String>>,
-    pub timestamp: Option<i64>
+    pub timestamp: Option<i64>,
 }

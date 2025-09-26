@@ -24,7 +24,7 @@ impl ReceiptRepo {
         ReceiptRepo { collection: client.database("fin-os-db").collection("receipts") }
     }
 
-    pub async fn add_receipts(&self,receipts: ReceiptList) -> Result<()> {
+    pub async fn insert_receipts(&self,receipts: ReceiptList) -> Result<()> {
         let _ = self.collection.insert_many(receipts.transactions).await?;
         Ok(())
     }

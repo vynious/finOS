@@ -8,8 +8,8 @@ pub struct TrackedEmails {
     #[serde(rename = "_id")]
     pub id: String, // <-- is the user's email address 
     pub emails: Vec<String>,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 pub struct EmailRepo {
@@ -27,8 +27,8 @@ impl EmailRepo {
         let to_upsert = TrackedEmails {
             id: email_addr.to_string(), 
             emails: tracked_emails,  
-            created_at: DateTime::now(), 
-            updated_at: DateTime::now()
+            created_at: DateTime::now().timestamp_millis(), 
+            updated_at: DateTime::now().timestamp_millis()
         };
         self.collection
             .replace_one(filter, to_upsert)

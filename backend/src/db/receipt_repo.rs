@@ -1,4 +1,4 @@
-use std::collections;
+use std::env;
 
 use anyhow::Result;
 use mongodb::{
@@ -25,7 +25,9 @@ pub struct ReceiptRepo {
 impl ReceiptRepo {
     pub fn new(client: &Client) -> Self {
         ReceiptRepo {
-            collection: client.database("fin-os-db").collection("receipts"),
+            collection: client
+                .database(&env::var("DATABSE").expect("Unspecified Database"))
+                .collection("receipts"),
         }
     }
 

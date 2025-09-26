@@ -4,6 +4,7 @@ use mongodb::{
     Client, Collection,
 };
 use serde::{Deserialize, Serialize};
+use std::env;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackedEmails {
@@ -21,7 +22,9 @@ pub struct EmailRepo {
 impl EmailRepo {
     pub fn new(client: &Client) -> Self {
         EmailRepo {
-            collection: client.database("fin-os-db").collection("tracked_emails"),
+            collection: client
+                .database(&env::var("DATABSE").expect("Unspecified Database"))
+                .collection("tracked_emails"),
         }
     }
 

@@ -23,7 +23,7 @@ impl EmailRepo {
     pub fn new(client: &Client) -> Self {
         EmailRepo {
             collection: client
-                .database(&env::var("DATABSE").expect("Unspecified Database"))
+                .database(&env::var("DATABASE").expect("Unspecified Database"))
                 .collection("tracked_emails"),
         }
     }

@@ -5,7 +5,6 @@ use mongodb::{
     bson::{doc, DateTime, Document},
     Client, Collection,
 };
-use reqwest::header::REFERER;
 use serde::{Deserialize, Serialize};
 
 use crate::service::models::{Receipt, ReceiptList};
@@ -25,9 +24,7 @@ pub struct ReceiptRepo {
 impl ReceiptRepo {
     pub fn new(client: &Client) -> Self {
         ReceiptRepo {
-            collection: client
-                .database(&env::var("DATABSE").expect("Unspecified Database"))
-                .collection("receipts"),
+            collection: client.database(&env::var("DATABASE").expect("Unspecified Database")).collection("receipts"),
         }
     }
 

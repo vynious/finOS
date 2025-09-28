@@ -44,9 +44,9 @@ impl UserRepo {
         Ok(())
     }
 
-    pub async fn find_active_users(&self) -> Result<Vec<User>> {
+    pub async fn find_users_by_status(&self, status: bool) -> Result<Vec<User>> {
         let mut users: Vec<User> = Vec::new();
-        let mut cursor = self.collection.find(doc! {"active": true}).await?;
+        let mut cursor = self.collection.find(doc! {"active": status}).await?;
         while let Some(user) = cursor.try_next().await? {
             users.push(user);
         }

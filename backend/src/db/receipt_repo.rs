@@ -7,7 +7,10 @@ use mongodb::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{db::email_repo, service::models::{Receipt, ReceiptList}};
+use crate::{
+    db::email_repo,
+    service::models::{Receipt, ReceiptList},
+};
 
 /// TODO:
 ///
@@ -31,7 +34,11 @@ impl ReceiptRepo {
     }
 
     pub async fn insert_receipts(&self, receipts: ReceiptList) -> Result<()> {
-        let _ = self.collection.insert_many(receipts.transactions).await.context(format!("Failed to insert receipts"))?;
+        let _ = self
+            .collection
+            .insert_many(receipts.transactions)
+            .await
+            .context(format!("Failed to insert receipts"))?;
         Ok(())
     }
 

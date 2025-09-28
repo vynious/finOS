@@ -23,25 +23,24 @@ impl IngestorService {
     /// Main Orchestrator of syncing the receipts into the DB.
     ///
     /// We can create a pool of worker threads to run the sync asynchronously for each client
-    /// 
+    ///
     /// 1. Get the number of existing users
-    /// 2. For each users, get their latest sync timestamp 
+    /// 2. For each users, get their latest sync timestamp
     /// 3. Build the query string based on the latest timestamp
     /// 4. Run sync receipts for each clients with tokio workers
     /// 5. Collect all the receipts and bulk insert into store
-    /// 
-    /// 
-    /// 
-    /// 
-    /// 
-    /// 
-    /// 
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
     pub async fn sync_receipts(&self, email_addr: &str, queries: Vec<String>) -> Result<()> {
         let receipts = self
             .email_service
             .query_and_process_untracked(email_addr, queries)
             .await?;
-
 
         // use futures::stream::{self, StreamExt};
 
@@ -52,7 +51,6 @@ impl IngestorService {
         //     .await
         //     .into_iter()
         //     .collect::<Result<Vec<_>, _>>()?;
-
 
         self.receipt_service.store_receipts(receipts).await?;
         Ok(())

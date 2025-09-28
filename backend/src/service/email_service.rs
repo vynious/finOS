@@ -227,7 +227,6 @@ impl EmailService {
         .await
         .with_context(|| "Getting auth from secret")?;
 
-
         // get readonly token
         let token = auth
             .token(&["https://www.googleapis.com/auth/gmail.readonly"])

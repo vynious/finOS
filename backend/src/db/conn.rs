@@ -9,7 +9,9 @@ use std::env;
 pub async fn new_mongo_client() -> Result<Client> {
     println!("Generating Mongo Client");
     let db_url = env::var("MONGO_URI").expect("MONGO_URI must be set");
-    let mut client_opt = ClientOptions::parse(db_url).await.context("Failed to parse DB url")?;
+    let mut client_opt = ClientOptions::parse(db_url)
+        .await
+        .context("Failed to parse DB url")?;
     let server_api = ServerApi::builder().version(ServerApiVersion::V1).build();
     client_opt.server_api = Some(server_api);
     let client = Client::with_options(client_opt)?;

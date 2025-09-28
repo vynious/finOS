@@ -12,8 +12,9 @@ use std::{env, vec};
 pub struct User {
     pub email: String,
     pub name: String,
-    pub secret: Option<Secret>,
     pub active: bool,
+    pub last_synced: Option<i64>,
+    pub secret: Option<Secret>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

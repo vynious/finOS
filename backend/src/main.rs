@@ -1,8 +1,11 @@
 use crate::{
-    db::{conn::new_mongo_client, email_repo::EmailRepo, receipt_repo::ReceiptRepo},
+    db::{
+        conn::new_mongo_client, email_repo::EmailRepo, receipt_repo::ReceiptRepo,
+        user_repo::UserRepo,
+    },
     service::{
         email_service::EmailService, ingestor_service::IngestorService,
-        receipt_service::ReceiptService,
+        receipt_service::ReceiptService, user_service::UserService,
     },
 };
 use anyhow::Result;
@@ -24,37 +27,21 @@ async fn main() -> Result<()> {
         env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
         email_repo,
     );
+    let user_repo = UserRepo::new(&mongo_client);
+    let user_svc = UserService::new(user_repo);
 
     let receipt_repo = ReceiptRepo::new(&mongo_client);
     let receipt_svc = ReceiptService::new(receipt_repo);
-    let ingestor = Arc::new(IngestorService::new(email_svc, receipt_svc));
+    let ingestor = Arc::new(IngestorService::new(email_svc, receipt_svc, user_svc));
 
-    // Async Runtime for Ingestion
-    {
-        tokio::spawn({
-            let ingestor2 = Arc::clone(&ingestor);
 
-            // TODO:
-            // currently this runs for a single user (hardcoded),
-            // make the ingestor run an async task for each user registered
-            // and the query will be built based on the latest timestamp stored for each user.
-            let queries = vec![
-                "category:primary".to_string(),
-                "from:(noreply@wise.com OR from_us@trustbank.sg OR noreply@you.co)".to_string(),
-                "newer_than:7d".to_string(), // should change based on latest timestamp
-            ];
-            let target = "shawnthiah@gmail.com";
-
-            async move {
-                if let Err(e) = ingestor2.sync_receipts(&target, queries).await {
-                    error!(error = %e, "ingestor failed");
-                    for cause in e.chain().skip(1) {
-                        error!(%cause, "caused by");
-                    }
-                }
-            }
-        })
-    };
+    // run sync, currently only running once.
+    if let Err(e) = ingestor.sync_receipts().await {
+        error!(error = %e, "ingestor failed");
+        for cause in e.chain().skip(1) {
+            error!(%cause, "caused by");
+        }
+    }
 
     // API Components
     let app = Router::new().route("/", get(|| async { "Hello World" }));

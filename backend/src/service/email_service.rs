@@ -35,6 +35,7 @@ fn build_keyword_regex(words: &[&str]) -> Regex {
     Regex::new(&format!(r"(?i)\b(?:{})\b", body)).unwrap()
 }
 
+#[derive(Clone)]
 pub struct EmailService {
     client: Client,
     ollama: Ollama,

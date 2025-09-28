@@ -1,5 +1,13 @@
-use crate::service::{email_service::EmailService, receipt_service::ReceiptService};
-use anyhow::Result;
+use std::sync::Arc;
+
+use crate::service::{
+    email_service::EmailService,
+    models::ReceiptList,
+    receipt_service::ReceiptService,
+    user_service::{self, UserService},
+};
+use anyhow::{Context, Result};
+use futures::lock::Mutex;
 
 /// TODO:
 ///
@@ -10,13 +18,19 @@ use anyhow::Result;
 pub struct IngestorService {
     receipt_service: ReceiptService,
     email_service: EmailService,
+    user_service: UserService,
 }
 
 impl IngestorService {
-    pub fn new(email_service: EmailService, receipt_service: ReceiptService) -> Self {
+    pub fn new(
+        email_service: EmailService,
+        receipt_service: ReceiptService,
+        user_service: UserService,
+    ) -> Self {
         IngestorService {
             receipt_service: receipt_service,
             email_service: email_service,
+            user_service: user_service,
         }
     }
 
@@ -36,23 +50,42 @@ impl IngestorService {
     ///
     ///
     ///
-    pub async fn sync_receipts(&self, email_addr: &str, queries: Vec<String>) -> Result<()> {
-        let receipts = self
-            .email_service
-            .query_and_process_untracked(email_addr, queries)
-            .await?;
+    pub async fn sync_receipts(&self) -> Result<()> {
+        // get users
+        let users = self
+            .user_service
+            .get_users_by_status(true)
+            .await
+            .context("Retrieving users for syncing")?;
+        let mut all_receipts: ReceiptList = ReceiptList {
+            transactions: Vec::new(),
+        };
 
-        // use futures::stream::{self, StreamExt};
+        // Process all users in parallel
+        let handles: Vec<_> = users
+            .into_iter()
+            .map(|user| {
+                let queries = Vec::new(); // TODO: build query string
+                let email_service = self.email_service.clone(); // Assuming EmailService implements Clone
+                tokio::spawn(async move {
+                    email_service
+                        .query_and_process_untracked(&user.email, queries)
+                        .await
+                })
+            })
+            .collect();
 
-        // let out: Vec<_> = stream::iter(urls)
-        //     .map(|u| async move { fetch(u).await })   // -> Future<Output=Result<_>>
-        //     .buffer_unordered(8)                      // at most 8 in flight
-        //     .collect::<Vec<_>>()                      // Vec<Result<_>>
-        //     .await
-        //     .into_iter()
-        //     .collect::<Result<Vec<_>, _>>()?;
+        for handle in handles {
+            if let Ok(Ok(recipts)) = handle.await {
+                all_receipts.transactions.extend(recipts.transactions);
+            }
+        }
 
-        self.receipt_service.store_receipts(receipts).await?;
+        self.receipt_service.store_receipts(all_receipts).await?;
         Ok(())
+    }
+
+    pub fn get_time_query(last_synced: i64) {
+        // get current time now and
     }
 }

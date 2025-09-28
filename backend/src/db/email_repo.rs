@@ -15,6 +15,7 @@ pub struct TrackedEmails {
     pub updated_at: i64,
 }
 
+#[derive(Debug, Clone)]
 pub struct EmailRepo {
     collection: Collection<TrackedEmails>,
 }

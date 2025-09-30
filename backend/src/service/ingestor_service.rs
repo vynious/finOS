@@ -1,13 +1,12 @@
-use std::sync::Arc;
+use std::{env, sync::Arc, time::{self, SystemTime, UNIX_EPOCH}};
 
-use crate::service::{
+use crate::{db::user_repo::User, service::{
     email_service::EmailService,
     models::ReceiptList,
     receipt_service::ReceiptService,
     user_service::{self, UserService},
-};
+}};
 use anyhow::{Context, Result};
-use futures::lock::Mutex;
 
 /// TODO:
 ///
@@ -64,9 +63,17 @@ impl IngestorService {
         // Process all users in parallel
         let handles: Vec<_> = users
             .into_iter()
-            .map(|user| {
-                let queries = Vec::new(); // TODO: build query string
-                let email_service = self.email_service.clone(); // Assuming EmailService implements Clone
+            .map(|mut user| {
+                let now_ms = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis() as i64;
+                let queries = self.build_query(now_ms, &user);
+                let email_service = self.email_service.clone();
+                
+                // update user's last synced timestamp
+                user.last_synced = Some(now_ms);
+
                 tokio::spawn(async move {
                     email_service
                         .query_and_process_untracked(&user.email, queries)
@@ -80,12 +87,37 @@ impl IngestorService {
                 all_receipts.transactions.extend(recipts.transactions);
             }
         }
-
+        // store receipts
         self.receipt_service.store_receipts(all_receipts).await?;
+        // update user last synced
+        
         Ok(())
     }
 
-    pub fn get_time_query(last_synced: i64) {
-        // get current time now and
+    pub fn get_time_query(&self, current_time: i64, last_synced: i64) -> String {
+        let day_ms: i64 = 1000 * 60 * 60 * 24;
+        let diff_ms = last_synced - current_time;
+        // round up
+        let diff_days = (diff_ms + day_ms - 1)/ (1000 * 60 * 60 * 24);
+        diff_days.to_string()
+    }
+
+    fn build_query(&self, current_time: i64, user: &User) -> Vec<String> {
+        println!("{}", user.email);
+
+        let category = "primary";
+        let days: String =  match user.last_synced {
+            Some(last_synced) => {
+                self.get_time_query(current_time, last_synced)
+            },
+            None => {
+                // default 1 week 
+                "7".to_string()
+            }
+        };
+        let raw = env::var("ISSUER_EMAILS").expect("Missing ISSUER_EMAILS");
+        let issuers_email: Vec<String> = serde_json::from_str(&raw).expect("ISSUER_EMAILS must be a JSON array of strings");
+
+        vec![format!("category:{}",category), format!("from:({})",issuers_email.join(" OR ")), format!("newer_than:{}d", days)]
     }
 }

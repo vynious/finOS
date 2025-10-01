@@ -99,7 +99,7 @@ impl EmailService {
         };
 
         // get authenticated token
-        let token = self.authenticate().await?;
+        let token = EmailService::authenticate().await?;
 
         // derive token string once
         let token_str = match token.token() {
@@ -207,7 +207,7 @@ impl EmailService {
 
     /// Runs authentication based on the client_secret and returns the AccessToken
     /// Performs OAuth installed-flow and returns a Gmail Readonly access token.
-    async fn authenticate(&self) -> Result<AccessToken> {
+    async fn authenticate() -> Result<AccessToken> {
         // load client secret
         println!("Running email authentication");
         let secret_str = fs::read_to_string("client_secret_web.json")
@@ -242,7 +242,7 @@ impl EmailService {
     async fn fetch_and_parse_email(&self, token: &str, id: &str) -> Result<ParsedEmailContent> {
         let bytes = self.fetch_email_raw(token, id).await?;
         let message = self.parse_message(&bytes);
-        let extracted = self.extract_email_content(&message);
+        let extracted = EmailService::extract_email_content(&message);
         Ok(extracted)
     }
 
@@ -270,7 +270,7 @@ impl EmailService {
     }
 
     /// Extracts high-level fields into `ParsedEmailContent` for downstream use.
-    fn extract_email_content(&self, parsed: &Message<'_>) -> ParsedEmailContent {
+    fn extract_email_content(parsed: &Message<'_>) -> ParsedEmailContent {
         let subject = parsed.subject().map(|s| s.to_string());
         let timestamp = parsed.date().map(|dt| dt.to_timestamp());
         let (from_name, from_addr) = parsed
@@ -298,7 +298,7 @@ impl EmailService {
 
     /// Converts HTML into visible text by traversing the DOM and removing
     /// non-visible nodes and redundant whitespace/newlines.
-    fn html_to_text(&self, html: &str) -> String {
+    fn html_to_text(html: &str) -> String {
         let doc = Html::parse_document(html);
 
         // gather text by walking the DOM and skipping non-visible containers.
@@ -380,7 +380,7 @@ impl EmailService {
     /// from email HTML by prompting an LLM and parsing JSON output.
     async fn parse_with_ollmao(&self, raw: &str) -> Result<ReceiptList> {
         println!("Parsing with Ollama: {}", self.model_name);
-        let text = self.html_to_text(raw);
+        let text = EmailService::html_to_text(raw);
         let prompt = format!("Identify the transactions in this text \n {} \n and Return ONLY valid JSON for the schema: {{ 'transactions': [ {{'merchant': '...', 'amount': 0.0, 'currency': '...'}} ] }}", text);
         let res = self
             .ollama

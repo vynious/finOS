@@ -1,12 +1,8 @@
 use anyhow::{Context, Result};
 use futures::stream::TryStreamExt;
-use mongodb::{
-    bson::{doc, from_document, DateTime},
-    Client, Collection,
-};
-use reqwest::dns::Name;
+use mongodb::{bson::doc, Client, Collection};
 use serde::{Deserialize, Serialize};
-use std::{env, vec};
+use std::env;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct User {
@@ -52,5 +48,29 @@ impl UserRepo {
             users.push(user);
         }
         Ok(users)
+    }
+
+    pub async fn bulk_update_users(&self, users: Vec<User>) -> Result<()> {
+        let collection = self.collection.clone();
+        let handles: Vec<_> = users
+            .into_iter()
+            .map(|user| {
+                let collection = collection.clone();
+                tokio::spawn(async move {
+                    let _ = collection
+                        .update_one(
+                            doc! {"email": &user.email, "name": &user.name},
+                            doc! {"$set": {"last_synced": user.last_synced}},
+                        )
+                        .await;
+                })
+            })
+            .collect();
+
+        for h in handles {
+            let _ = h.await;
+        }
+
+        Ok(())
     }
 }

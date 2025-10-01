@@ -28,4 +28,13 @@ impl UserService {
             .context("Registering new user")?;
         Ok(())
     }
+
+    pub async fn update_last_synced(&self, users: Vec<User>) -> Result<()> {
+        let _ = self
+            .db_client
+            .bulk_update_users(users)
+            .await
+            .context("Bulk updating last_synced")?;
+        Ok(())
+    }
 }

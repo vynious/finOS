@@ -64,7 +64,7 @@ impl EmailService {
             .await
             .with_context(|| format!("Getting tracked emails for {}", email_addr))?
         {
-            Ok(tracked_emails.emails.into_iter().collect())
+            Ok(tracked_emails.email_ids.into_iter().collect())
         } else {
             Ok(HashSet::new())
         }
@@ -124,7 +124,6 @@ impl EmailService {
         let re = build_keyword_regex(&["transaction", "spent", "payment"]);
 
         // add into seen emails
-        // TODO: can run concurrently (my laptop might die.)
         for email in untracked_emails {
             println!("Checking email: {}", email.id);
             tracked_emails.insert(email.id.to_string());

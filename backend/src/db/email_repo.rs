@@ -10,7 +10,7 @@ use std::{env, fmt};
 pub struct TrackedEmails {
     #[serde(rename = "_id")]
     pub id: String, // <-- is the user's email address
-    pub emails: Vec<String>,
+    pub email_ids: Vec<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -37,7 +37,7 @@ impl EmailRepo {
         let filter = doc! { "_id": email_addr};
         let to_upsert = TrackedEmails {
             id: email_addr.to_string(),
-            emails: tracked_emails,
+            email_ids: tracked_emails,
             created_at: DateTime::now().timestamp_millis(),
             updated_at: DateTime::now().timestamp_millis(),
         };

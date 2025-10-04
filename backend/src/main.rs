@@ -32,9 +32,9 @@ async fn main() -> Result<()> {
 
     let receipt_repo = ReceiptRepo::new(&mongo_client);
     let receipt_svc = ReceiptService::new(receipt_repo);
-    let ingestor = Arc::new(IngestorService::new(email_svc, receipt_svc, user_svc));
+    let ingestor = IngestorService::new(email_svc, receipt_svc, user_svc);
 
-    // run sync, currently only running once.
+    // cron job once every day?
     if let Err(e) = ingestor.sync_receipts().await {
         error!(error = %e, "ingestor failed");
         for cause in e.chain().skip(1) {

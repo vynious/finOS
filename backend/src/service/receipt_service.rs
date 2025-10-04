@@ -13,9 +13,17 @@ impl ReceiptService {
         }
     }
 
-    pub async fn store_receipts(&self, receipts: ReceiptList) -> Result<()> {
+    pub async fn store(&self, receipts: ReceiptList) -> Result<()> {
         println!("Storing receipts");
-        self.db_client.insert_receipts(receipts).await?;
+        self.db_client.insert(receipts).await?;
         Ok(())
+    }
+
+    pub async fn get_by(&self, email: &str) -> Result<ReceiptList> {
+        println!("Getting receipts for {}", email);
+        let receipts = self.db_client.by_email(email).await?;
+        Ok(ReceiptList {
+            transactions: receipts,
+        })
     }
 }

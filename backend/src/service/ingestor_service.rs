@@ -88,7 +88,7 @@ impl IngestorService {
             }
         }
         // store receipts
-        self.receipt_service.store_receipts(all_receipts).await?;
+        self.receipt_service.store(all_receipts).await?;
         // update user last synced
         self.user_service.update_last_synced(updated_users).await?;
         Ok(())

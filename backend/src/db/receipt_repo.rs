@@ -9,14 +9,6 @@ use mongodb::{
     Client, Collection,
 };
 
-/// TODO:
-///
-///
-///
-///
-///
-///
-///
 pub struct ReceiptRepo {
     collection: Collection<Receipt>,
 }

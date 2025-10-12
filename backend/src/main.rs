@@ -1,18 +1,13 @@
-use crate::{
-    common::{app_state::AppState, db_conn::new_mongo_client},
-    domain::{
-        email::service::EmailService, ingestor::service::IngestorService,
-        receipt::service::ReceiptService, user::service::UserService,
-    },
-};
 use anyhow::{Context, Result};
 use axum::{routing::get, Router};
-use backend::common::app_state::{self, build_app};
+use backend::common::app_state::{self};
 use dotenvy::dotenv;
-use std::{env, sync::Arc};
 use tracing::error;
+
+use crate::app::build_app;
 mod common;
 mod domain;
+mod app;
 
 #[tokio::main]
 async fn main() -> Result<()> {

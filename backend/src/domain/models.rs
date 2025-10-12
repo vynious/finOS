@@ -49,7 +49,6 @@ pub struct Receipt {
     pub timestamp: Option<i64>,
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct User {
     pub email: String,

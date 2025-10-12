@@ -1,17 +1,13 @@
 use crate::{
-    common::{
-        db_conn::new_mongo_client,
-        app_state::AppState,
-    },
+    common::{app_state::AppState, db_conn::new_mongo_client},
     domain::{
-        email::service::EmailService,
-        ingestor::service::IngestorService,
-        receipt::service::ReceiptService,
-        user::service::UserService,
+        email::service::EmailService, ingestor::service::IngestorService,
+        receipt::service::ReceiptService, user::service::UserService,
     },
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{routing::get, Router};
+use backend::common::app_state::{self, build_app};
 use dotenvy::dotenv;
 use std::{env, sync::Arc};
 use tracing::error;
@@ -22,26 +18,10 @@ mod domain;
 async fn main() -> Result<()> {
     dotenv().ok();
 
-    // Dependency Injection
-    let mongo_client = new_mongo_client().await?;
-    
-    // Create repositories
-    let user_repo = crate::domain::user::repository::UserRepo::new(&mongo_client);
-    let receipt_repo = crate::domain::receipt::repository::ReceiptRepo::new(&mongo_client);
-    let email_repo = crate::domain::email::repository::EmailRepo::new(&mongo_client);
-    
-    // Create services
-    let user_svc = Arc::new(UserService::new(user_repo));
-    let receipt_svc = Arc::new(ReceiptService::new(receipt_repo));
-    let email_svc = Arc::new(EmailService::new(
-        env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
-        email_repo,
-    ));
-    let ingestor = IngestorService::new(email_svc.clone(), receipt_svc.clone(), user_svc.clone());
-    let app_state = AppState::new(user_svc.clone(), receipt_svc.clone(), email_svc.clone());
+    let app_state = build_app().await.context("Building App")?;
 
     // cron job once every day?
-    if let Err(e) = ingestor.sync_receipts().await {
+    if let Err(e) = app_state.ingestor_service.sync_receipts().await {
         error!(error = %e, "ingestor failed");
         for cause in e.chain().skip(1) {
             error!(%cause, "caused by");

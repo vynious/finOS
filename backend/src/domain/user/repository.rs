@@ -1,9 +1,9 @@
+use crate::domain::models::User;
 use anyhow::{Context, Result};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Client, Collection};
 use serde::{Deserialize, Serialize};
 use std::env;
-use crate::domain::models::User;
 
 #[derive(Clone)]
 pub struct UserRepo {

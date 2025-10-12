@@ -3,18 +3,14 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{
-
-    domain::{
-        models::{ReceiptList, User},
-        email::service::EmailService,
-        receipt::service::ReceiptService,
-        user::service::UserService,
-    },
+use crate::domain::{
+    email::service::EmailService,
+    models::{ReceiptList, User},
+    receipt::service::ReceiptService,
+    user::service::UserService,
 };
 use anyhow::{Context, Result};
 use std::sync::Arc;
-
 
 /// Ingestor service should be run with a cronjob
 /// to process and track emails relating to receipts

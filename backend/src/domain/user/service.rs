@@ -1,5 +1,5 @@
-use crate::domain::user::repository::UserRepo;
 use crate::domain::models::User;
+use crate::domain::user::repository::UserRepo;
 use anyhow::{Context, Ok, Result};
 
 #[derive(Clone)]

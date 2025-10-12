@@ -5,9 +5,8 @@ use std::{
 
 use crate::domain::{
     email::service::EmailService,
-    models::{ReceiptList, User},
-    receipt::service::ReceiptService,
-    user::service::UserService,
+    receipt::{models::ReceiptList, service::ReceiptService},
+    user::{models::User, service::UserService},
 };
 use anyhow::{Context, Result};
 use std::sync::Arc;

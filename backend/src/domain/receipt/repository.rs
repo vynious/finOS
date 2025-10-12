@@ -1,6 +1,6 @@
 use std::env;
 
-use crate::domain::models::{Receipt, ReceiptList};
+use crate::domain::receipt::models::{Receipt, ReceiptList};
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use futures::TryStreamExt;

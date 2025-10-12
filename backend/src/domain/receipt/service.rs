@@ -1,4 +1,4 @@
-use crate::{domain::models::ReceiptList, domain::receipt::repository::ReceiptRepo};
+use crate::domain::receipt::{models::ReceiptList, repository::ReceiptRepo};
 use anyhow::Result;
 
 #[derive(Clone)]

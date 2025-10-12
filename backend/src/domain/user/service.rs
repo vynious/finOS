@@ -1,4 +1,4 @@
-use crate::domain::models::User;
+use crate::domain::user::models::User;
 use crate::domain::user::repository::UserRepo;
 use anyhow::{Context, Ok, Result};
 

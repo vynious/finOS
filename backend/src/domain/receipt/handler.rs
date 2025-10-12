@@ -6,7 +6,7 @@ use axum::{
 use anyhow::Result;
 
 use crate::common::{api_response::ApiResponse, app_state::AppState};
-use crate::domain::models::{ReceiptList, Receipt};
+use crate::domain::receipt::models::{ReceiptList, Receipt};
 
 pub async fn get_receipts_by_email(
     Path(email): Path<String>,

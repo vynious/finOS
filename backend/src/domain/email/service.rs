@@ -1,5 +1,5 @@
-use super::models::*;
-use crate::db::email_repo::*;
+use crate::domain::models::*;
+use crate::domain::email::repository::EmailRepo;
 use anyhow::{bail, Context, Ok, Result};
 use base64::Engine;
 use ego_tree::NodeRef;

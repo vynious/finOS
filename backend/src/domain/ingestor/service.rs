@@ -4,10 +4,12 @@ use std::{
 };
 
 use crate::{
-    db::user_repo::User,
-    service::{
-        email_service::EmailService, models::ReceiptList, receipt_service::ReceiptService,
-        user_service::UserService,
+
+    domain::{
+        models::{ReceiptList, User},
+        email::service::EmailService,
+        receipt::service::ReceiptService,
+        user::service::UserService,
     },
 };
 use anyhow::{Context, Result};
@@ -59,6 +61,7 @@ impl IngestorService {
         };
 
         // Process all users in parallel, while building an updated copy to persist
+        println!("Processing all users");
         let email_service = self.email_service.clone();
         let mut updated_users: Vec<User> = Vec::with_capacity(users.len());
         let mut handles = Vec::with_capacity(users.len());

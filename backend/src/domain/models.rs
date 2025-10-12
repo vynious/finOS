@@ -48,3 +48,18 @@ pub struct Receipt {
     pub categories: Option<Vec<String>>,
     pub timestamp: Option<i64>,
 }
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct User {
+    pub email: String,
+    pub name: String,
+    pub active: bool,
+    pub last_synced: Option<i64>,
+    pub secret: Option<Secret>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Secret {
+    pub password: String,
+}

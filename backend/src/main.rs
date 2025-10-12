@@ -1,11 +1,13 @@
 use crate::{
-    db::{
-        conn::new_mongo_client, email_repo::EmailRepo, receipt_repo::ReceiptRepo,
-        user_repo::UserRepo,
+    common::{
+        db_conn::new_mongo_client,
+        app_state::AppState,
     },
-    service::{
-        email_service::EmailService, ingestor_service::IngestorService,
-        receipt_service::ReceiptService, user_service::UserService,
+    domain::{
+        email::service::EmailService,
+        ingestor::service::IngestorService,
+        receipt::service::ReceiptService,
+        user::service::UserService,
     },
 };
 use anyhow::Result;
@@ -13,8 +15,8 @@ use axum::{routing::get, Router};
 use dotenvy::dotenv;
 use std::{env, sync::Arc};
 use tracing::error;
-mod db;
-mod service;
+mod common;
+mod domain;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -22,17 +24,21 @@ async fn main() -> Result<()> {
 
     // Dependency Injection
     let mongo_client = new_mongo_client().await?;
-    let email_repo = EmailRepo::new(&mongo_client);
+    
+    // Create repositories
+    let user_repo = crate::domain::user::repository::UserRepo::new(&mongo_client);
+    let receipt_repo = crate::domain::receipt::repository::ReceiptRepo::new(&mongo_client);
+    let email_repo = crate::domain::email::repository::EmailRepo::new(&mongo_client);
+    
+    // Create services
+    let user_svc = UserService::new(user_repo);
+    let receipt_svc = ReceiptService::new(receipt_repo);
     let email_svc = EmailService::new(
         env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
         email_repo,
     );
-    let user_repo = UserRepo::new(&mongo_client);
-    let user_svc = UserService::new(user_repo);
-
-    let receipt_repo = ReceiptRepo::new(&mongo_client);
-    let receipt_svc = ReceiptService::new(receipt_repo);
-    let ingestor = IngestorService::new(email_svc, receipt_svc, user_svc);
+    let ingestor = IngestorService::new(email_svc.clone(), receipt_svc.clone(), user_svc.clone());
+    let app_state = AppState::new(user_svc, receipt_svc, email_svc);
 
     // cron job once every day?
     if let Err(e) = ingestor.sync_receipts().await {
@@ -44,6 +50,8 @@ async fn main() -> Result<()> {
 
     // API Components
     let app = Router::new().route("/", get(|| async { "Hello World" }));
+
+    // Start the server
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 

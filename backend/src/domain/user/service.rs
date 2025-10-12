@@ -1,6 +1,8 @@
-use crate::db::user_repo::{User, UserRepo};
+use crate::domain::user::repository::UserRepo;
+use crate::domain::models::User;
 use anyhow::{Context, Ok, Result};
 
+#[derive(Clone)]
 pub struct UserService {
     db_client: UserRepo,
 }

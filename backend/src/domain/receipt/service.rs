@@ -1,6 +1,8 @@
-use crate::{db::receipt_repo::ReceiptRepo, service::models::ReceiptList};
+use crate::{domain::models::ReceiptList, domain::receipt::repository::ReceiptRepo};
 use anyhow::Result;
 
+
+#[derive(Clone)]
 pub struct ReceiptService {
     db_client: ReceiptRepo,
 }

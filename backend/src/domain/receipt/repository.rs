@@ -1,6 +1,6 @@
 use std::env;
 
-use crate::service::models::{Receipt, ReceiptList};
+use crate::domain::models::{Receipt, ReceiptList};
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use futures::TryStreamExt;
@@ -9,6 +9,7 @@ use mongodb::{
     Client, Collection,
 };
 
+#[derive(Clone)]
 pub struct ReceiptRepo {
     collection: Collection<Receipt>,
 }

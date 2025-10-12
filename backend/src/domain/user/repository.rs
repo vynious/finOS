@@ -3,21 +3,9 @@ use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Client, Collection};
 use serde::{Deserialize, Serialize};
 use std::env;
+use crate::domain::models::User;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct User {
-    pub email: String,
-    pub name: String,
-    pub active: bool,
-    pub last_synced: Option<i64>,
-    pub secret: Option<Secret>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Secret {
-    pub password: String,
-}
-
+#[derive(Clone)]
 pub struct UserRepo {
     collection: Collection<User>,
 }

@@ -7,7 +7,7 @@ use mongodb::{
 use std::env;
 
 pub async fn new_mongo_client() -> Result<Client> {
-    println!("Generating Mongo Client");
+    println!("Spawning Mongo Client");
     let db_url = env::var("MONGO_URI").expect("MONGO_URI must be set");
     let mut client_opt = ClientOptions::parse(db_url)
         .await

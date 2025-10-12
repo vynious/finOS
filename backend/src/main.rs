@@ -31,14 +31,14 @@ async fn main() -> Result<()> {
     let email_repo = crate::domain::email::repository::EmailRepo::new(&mongo_client);
     
     // Create services
-    let user_svc = UserService::new(user_repo);
-    let receipt_svc = ReceiptService::new(receipt_repo);
-    let email_svc = EmailService::new(
+    let user_svc = Arc::new(UserService::new(user_repo));
+    let receipt_svc = Arc::new(ReceiptService::new(receipt_repo));
+    let email_svc = Arc::new(EmailService::new(
         env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
         email_repo,
-    );
+    ));
     let ingestor = IngestorService::new(email_svc.clone(), receipt_svc.clone(), user_svc.clone());
-    let app_state = AppState::new(user_svc, receipt_svc, email_svc);
+    let app_state = AppState::new(user_svc.clone(), receipt_svc.clone(), email_svc.clone());
 
     // cron job once every day?
     if let Err(e) = ingestor.sync_receipts().await {

@@ -17,11 +17,11 @@ pub struct AppState {
 
 
 impl AppState {
-    pub fn new(user_service: UserService, receipt_service: ReceiptService, email_service: EmailService) -> Self {
+    pub fn new(user_service: Arc<UserService>, receipt_service: Arc<ReceiptService>, email_service: Arc<EmailService>) -> Self {
         Self {
-            user_service: Arc::new(user_service),
-            receipt_service: Arc::new(receipt_service),
-            email_service: Arc::new(email_service),
+            user_service: user_service,
+            receipt_service: receipt_service,
+            email_service: email_service,
         }
     }
 }

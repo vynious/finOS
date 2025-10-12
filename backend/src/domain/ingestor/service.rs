@@ -13,24 +13,24 @@ use crate::{
     },
 };
 use anyhow::{Context, Result};
+use std::sync::Arc;
 
-/// TODO:
-///
+
 /// Ingestor service should be run with a cronjob
 /// to process and track emails relating to receipts
 /// by calling EmailService's functions and stores the
 /// receipts into the DB
 pub struct IngestorService {
-    receipt_service: ReceiptService,
-    email_service: EmailService,
-    user_service: UserService,
+    receipt_service: Arc<ReceiptService>,
+    email_service: Arc<EmailService>,
+    user_service: Arc<UserService>,
 }
 
 impl IngestorService {
     pub fn new(
-        email_service: EmailService,
-        receipt_service: ReceiptService,
-        user_service: UserService,
+        email_service: Arc<EmailService>,
+        receipt_service: Arc<ReceiptService>,
+        user_service: Arc<UserService>,
     ) -> Self {
         IngestorService {
             receipt_service: receipt_service,

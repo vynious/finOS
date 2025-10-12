@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use mongodb::{
-    bson::{doc, Document},
+    bson::doc,
     options::{ClientOptions, ServerApi, ServerApiVersion},
-    Client, Collection,
+    Client,
 };
 use std::env;
 

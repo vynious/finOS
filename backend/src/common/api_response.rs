@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 // Response wrapper for consistent API responses
 #[derive(Serialize)]

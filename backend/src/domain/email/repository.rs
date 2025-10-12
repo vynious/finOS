@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
 use mongodb::{
-    bson::{doc, DateTime, Document},
+    bson::{doc, DateTime},
     Client, Collection,
 };
 use serde::{Deserialize, Serialize};
-use std::{env, fmt};
+use std::env;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackedEmails {

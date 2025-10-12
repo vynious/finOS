@@ -2,7 +2,7 @@ use crate::common::app_state::AppState;
 use crate::common::db_conn::new_mongo_client;
 use crate::domain::{
     email::service::EmailService,
-    ingestor::{self, service::IngestorService},
+    ingestor::{service::IngestorService},
     receipt::service::ReceiptService,
     user::service::UserService,
 };

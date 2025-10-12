@@ -2,7 +2,7 @@ use std::env;
 
 use crate::domain::receipt::models::{Receipt, ReceiptList};
 use anyhow::{Context, Result};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{TimeZone, Utc};
 use futures::TryStreamExt;
 use mongodb::{
     bson::{doc, Document},

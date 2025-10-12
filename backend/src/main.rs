@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 use axum::{routing::get, Router};
-use backend::common::app_state::{self};
 use dotenvy::dotenv;
 use tracing::error;
 

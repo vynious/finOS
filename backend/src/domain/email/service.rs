@@ -4,15 +4,12 @@ use crate::domain::receipt::models::ReceiptList;
 use anyhow::{bail, Context, Ok, Result};
 use base64::Engine;
 use ego_tree::NodeRef;
-use mail_parser::{HeaderValue, Message, MessageParser};
-use mongodb::bson::serde_helpers::timestamp_as_u32;
+use mail_parser::{Message, MessageParser};
 use ollama_rs::{generation::completion::request::GenerationRequest, Ollama};
 use regex::{escape, Regex};
 use reqwest::Client;
 use scraper::{Html, Node};
-use std::{
-    collections::{HashMap, HashSet},
-};
+use std::collections::HashSet;
 use tokio::fs;
 use yup_oauth2::{AccessToken, ApplicationSecret, InstalledFlowAuthenticator};
 

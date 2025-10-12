@@ -8,6 +8,8 @@ use crate::domain::{
 use anyhow::Result;
 use std::{env, sync::Arc};
 
+
+#[derive(Clone)]
 pub struct AppState {
     pub user_service: Arc<UserService>,
     pub receipt_service: Arc<ReceiptService>,

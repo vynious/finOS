@@ -12,9 +12,6 @@ use reqwest::Client;
 use scraper::{Html, Node};
 use std::{
     collections::{HashMap, HashSet},
-    env,
-    hash::Hash,
-    vec,
 };
 use tokio::fs;
 use yup_oauth2::{AccessToken, ApplicationSecret, InstalledFlowAuthenticator};

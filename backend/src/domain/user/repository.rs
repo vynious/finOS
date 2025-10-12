@@ -2,7 +2,6 @@ use crate::domain::user::models::User;
 use anyhow::{Context, Result};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Client, Collection};
-use serde::{Deserialize, Serialize};
 use std::env;
 
 #[derive(Clone)]

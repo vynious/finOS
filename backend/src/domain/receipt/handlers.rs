@@ -1,9 +1,9 @@
+use anyhow::Result;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
 };
-use anyhow::Result;
 
 use crate::common::{api_response::ApiResponse, app_state::AppState};
 use crate::domain::receipt::models::ReceiptList;

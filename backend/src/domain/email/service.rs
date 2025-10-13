@@ -1,5 +1,5 @@
-use crate::domain::email::repository::EmailRepo;
 use crate::domain::email::models::*;
+use crate::domain::email::repository::EmailRepo;
 use crate::domain::receipt::models::ReceiptList;
 use anyhow::{bail, Context, Ok, Result};
 use base64::Engine;
@@ -94,7 +94,7 @@ impl EmailService {
         };
 
         // get authenticated token
-        let token = EmailService::authenticate().await?;
+        let token = EmailService::cli_authenticate().await?;
 
         // derive token string once
         let token_str = match token.token() {
@@ -201,7 +201,7 @@ impl EmailService {
 
     /// Runs authentication based on the client_secret and returns the AccessToken
     /// Performs OAuth installed-flow and returns a Gmail Readonly access token.
-    async fn authenticate() -> Result<AccessToken> {
+    async fn cli_authenticate() -> Result<AccessToken> {
         // load client secret
         println!("Running email authentication");
         let secret_str = fs::read_to_string("client_secret_web.json")

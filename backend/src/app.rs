@@ -1,15 +1,12 @@
 use crate::common::app_state::AppState;
 use crate::common::db_conn::new_mongo_client;
 use crate::domain::{
-    email::service::EmailService,
-    ingestor::{service::IngestorService},
-    receipt::service::ReceiptService,
-    user::service::UserService,
+    email::service::EmailService, ingestor::service::IngestorService,
+    receipt::service::ReceiptService, user::service::UserService,
 };
 use anyhow::Result;
 use axum::Router;
 use std::{env, sync::Arc};
-
 
 pub async fn build_app() -> Result<AppState> {
     // Dependency Injection
@@ -27,8 +24,10 @@ pub async fn build_app() -> Result<AppState> {
         email_repo,
     ));
     let ingestor = IngestorService::new(email_svc.clone(), receipt_svc.clone(), user_svc.clone());
+    let auth_svc: Arc<AuthService> = Arc::new(AuthService::new(token_store).await?);
 
     Ok(AppState::new(
+        auth_svc.clone(),
         user_svc.clone(),
         receipt_svc.clone(),
         email_svc.clone(),

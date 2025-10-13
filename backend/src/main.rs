@@ -4,9 +4,9 @@ use dotenvy::dotenv;
 use tracing::error;
 
 use crate::app::build_app;
+mod app;
 mod common;
 mod domain;
-mod app;
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -1,5 +1,5 @@
 pub mod email {
-    pub mod handler;
+    pub mod handlers;
     pub mod models;
     pub mod repository;
     pub mod routes;
@@ -7,14 +7,14 @@ pub mod email {
 }
 
 pub mod ingestor {
-    pub mod handler;
+    pub mod handlers;
     pub mod models;
     pub mod routes;
     pub mod service;
 }
 
 pub mod receipt {
-    pub mod handler;
+    pub mod handlers;
     pub mod models;
     pub mod repository;
     pub mod routes;
@@ -22,7 +22,15 @@ pub mod receipt {
 }
 
 pub mod user {
-    pub mod handler;
+    pub mod handlers;
+    pub mod models;
+    pub mod repository;
+    pub mod routes;
+    pub mod service;
+}
+
+pub mod auth {
+    pub mod handlers;
     pub mod models;
     pub mod repository;
     pub mod routes;

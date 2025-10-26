@@ -1,12 +1,17 @@
 use async_trait::async_trait;
+use mongodb::{
+    bson::{self, doc},
+    Client, Collection,
+};
+use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
-use std::collections::HashMap;
-use tokio::sync::RwLock;
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenRecord {
     pub user_id: String,
+    pub account_sub: Option<String>,
+    pub account_email: String,
+    pub account_name: Option<String>,
     pub provider: String,
     pub scope: String,
     pub access_token: String,
@@ -22,29 +27,36 @@ pub trait TokenStore: Send + Sync {
     async fn update(&self, rec: TokenRecord) -> anyhow::Result<()>;
 }
 
-#[derive(Default)]
-struct InMemoryTokenStore {
-    inner: RwLock<HashMap<(String, String), TokenRecord>>,
+#[derive(Clone)]
+pub struct MongoTokenStore {
+    collection: Collection<TokenRecord>,
+}
+
+impl MongoTokenStore {
+    pub fn new(client: &Client) -> Self {
+        let db = client.database("fin-os-db");
+        let collection = db.collection("tokens");
+        Self { collection }
+    }
 }
 
 #[async_trait]
-impl TokenStore for InMemoryTokenStore {
+impl TokenStore for MongoTokenStore {
     async fn store(&self, rec: TokenRecord) -> anyhow::Result<()> {
-        self.inner
-            .write()
-            .await
-            .insert((rec.user_id.clone(), rec.provider.clone()), rec);
+        self.collection.insert_one(rec).await?;
         Ok(())
     }
+
     async fn get(&self, user_id: &str, provider: &str) -> anyhow::Result<Option<TokenRecord>> {
-        Ok(self
-            .inner
-            .read()
-            .await
-            .get(&(user_id.to_string(), provider.to_string()))
-            .cloned())
+        let filter = doc! { "user_id": user_id, "provider": provider };
+        let result = self.collection.find_one(filter).await?;
+        Ok(result)
     }
+
     async fn update(&self, rec: TokenRecord) -> anyhow::Result<()> {
-        self.store(rec).await
+        let filter = doc! { "user_id": &rec.user_id, "provider": &rec.provider };
+        let update = doc! { "$set": bson::to_document(&rec)? };
+        self.collection.update_one(filter, update).await?;
+        Ok(())
     }
 }

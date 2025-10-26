@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct User {
     pub email: String,
+    pub google_sub: Option<String>,
     pub name: String,
     pub active: bool,
     pub last_synced: Option<i64>,

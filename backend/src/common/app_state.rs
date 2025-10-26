@@ -1,5 +1,6 @@
 use crate::domain::{
-    auth::service::AuthService, email::service::EmailService, ingestor::service::IngestorService, receipt::service::ReceiptService, user::service::UserService
+    auth::service::AuthService, email::service::EmailService, ingestor::service::IngestorService,
+    receipt::service::ReceiptService, user::service::UserService,
 };
 use std::sync::Arc;
 

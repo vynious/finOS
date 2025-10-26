@@ -28,6 +28,37 @@ impl UserRepo {
         Ok(())
     }
 
+    pub async fn find_user_by_email(&self, email: &str) -> Result<Option<User>> {
+        let user = self
+            .collection
+            .find_one(doc! { "email": email })
+            .await
+            .context("Failed to query user by email")?;
+        Ok(user)
+    }
+
+    pub async fn update_google_profile(
+        &self,
+        email: &str,
+        sub: &str,
+        name: Option<&str>,
+    ) -> Result<()> {
+        self.collection
+            .update_one(
+                doc! { "email": email },
+                doc! {
+                    "$set": {
+                        "google_sub": sub,
+                        "name": name.unwrap_or(email),
+                        "active": true
+                    }
+                },
+            )
+            .await
+            .context("Updating google profile fields")?;
+        Ok(())
+    }
+
     pub async fn find_users_by_status(&self, status: bool) -> Result<Vec<User>> {
         let mut users: Vec<User> = Vec::new();
         let mut cursor = self.collection.find(doc! {"active": status}).await?;

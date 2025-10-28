@@ -1,7 +1,9 @@
 use anyhow::Context;
 use axum::{
-    extract::{Query, State},
-    http::StatusCode,
+    body::Body,
+    extract::{Query, Request, State},
+    http::{self, Response, StatusCode},
+    middleware::Next,
     response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar};
@@ -11,7 +13,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
-use crate::{common::app_state::AppState, domain::auth::models::TokenRecord};
+use crate::{
+    common::app_state::AppState,
+    domain::auth::{self, models::TokenRecord},
+};
 
 #[derive(Deserialize)]
 pub struct OAuthCb {
@@ -152,4 +157,34 @@ pub async fn google_oauth_callback(
     }
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+}
+
+pub async fn authorization_middleware(
+    State(app): State<Arc<AppState>>,
+    req: Request,
+    next: Next,
+) -> Result<Response<Body>, (StatusCode, String)> {
+    let token = req
+        .headers()
+        .get(http::header::AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|v| {
+            let mut it = v.split_whitespace();
+            match (it.next(), it.next()) {
+                (Some(scheme), Some(tok)) if scheme.eq_ignore_ascii_case("bearer") => Some(tok),
+                _ => None,
+            }
+        })
+        .ok_or((
+            StatusCode::UNAUTHORIZED,
+            "Missing or malformed Authorization header".to_string(),
+        ))?;
+
+    let _ = app
+        .auth_service
+        .decode_and_validate_expiry(token)
+        .and_then(|c| app.auth_service.validate_roles(c, "user"))
+        .map_err(|e| (StatusCode::UNAUTHORIZED, format!("Invalid token: {e}")))?;
+
+    Ok(next.run(req).await)
 }

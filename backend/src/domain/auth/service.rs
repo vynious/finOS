@@ -3,8 +3,8 @@ use crate::domain::auth::{
     repository::TokenStore,
 };
 
-use anyhow::{Context, Ok, Result};
-use jsonwebtoken::{encode, Header};
+use anyhow::{ensure, Context, Ok, Result};
+use jsonwebtoken::{decode, encode, Header};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use oauth2::url::Url;
 use oauth2::{
@@ -174,5 +174,23 @@ impl AuthService {
             .context("failed to encode JWT")?;
 
         Ok(jwt)
+    }
+
+    pub fn decode_and_validate_expiry(&self, jwt: &str) -> Result<Claims> {
+        let claims = decode::<Claims>(&jwt, &self.jwt_decoding, &self.jwt_validation)
+            .context("failed to decode JWT")?
+            .claims;
+        let now = OffsetDateTime::now_utc().unix_timestamp();
+        ensure!(claims.exp > now, "JWT expired");
+        Ok(claims)
+    }
+
+    pub fn validate_roles(&self, claims: Claims, required_role: &str) -> Result<Claims> {
+        let user_roles = &claims.roles;
+        ensure!(
+            user_roles.iter().all(|role| role == required_role),
+            "missing role: {required_role}"
+        );
+        Ok(claims)
     }
 }

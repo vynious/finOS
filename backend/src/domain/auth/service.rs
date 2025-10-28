@@ -1,5 +1,11 @@
-use crate::domain::auth::{models::TokenRecord, repository::TokenStore};
+use crate::domain::auth::{
+    models::{Claims, TokenRecord},
+    repository::TokenStore,
+};
+
 use anyhow::{Context, Result};
+use jsonwebtoken::{encode, Header};
+use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use oauth2::url::Url;
 use oauth2::{
     basic::BasicClient, reqwest::async_http_client, AuthUrl, ClientId, ClientSecret, CsrfToken,
@@ -23,10 +29,14 @@ pub struct ApplicationSecret {
 pub struct AuthService {
     token_store: Arc<dyn TokenStore>,
     pub oauth: BasicClient,
+    jwt_encoding: EncodingKey,
+    jwt_decoding: DecodingKey,
+    jwt_validation: Validation,
 }
 
 impl AuthService {
     pub async fn new(token_store: Arc<dyn TokenStore>) -> Result<Self> {
+        let secret = std::env::var("JWT_SECRET").unwrap();
         let secret_str = fs::read_to_string("client_secret_web.json")
             .await
             .context("Failed to read client secret file")?;
@@ -47,7 +57,17 @@ impl AuthService {
         )
         .set_redirect_uri(RedirectUrl::new(redirect_uri.clone()).context("Invalid redirect URI")?);
 
-        Ok(Self { token_store, oauth })
+        let jwt_encoding = EncodingKey::from_secret("secret".as_ref());
+        let jwt_decoding = DecodingKey::from_secret("secret".as_ref());
+        let jwt_validation = Validation::default();
+
+        Ok(Self {
+            token_store,
+            oauth,
+            jwt_encoding,
+            jwt_decoding,
+            jwt_validation,
+        })
     }
 
     pub fn auth_redirect(&self) -> (Url, CsrfToken, String) {
@@ -140,7 +160,19 @@ impl AuthService {
         Ok(record)
     }
 
-    pub async fn mint_jwt(&self, token_record: &TokenRecord) -> Result<String> {
-        
+    pub async fn issue_jwt(&self, token_record: &TokenRecord) -> Result<String> {
+        let claims = Claims {
+            sub: token_record.user_id.clone(),
+            iat: OffsetDateTime::now_utc().unix_timestamp(),
+            exp: (OffsetDateTime::now_utc() + TimeDuration::hours(1)).unix_timestamp(),
+            iss: "finOS".to_string(),
+            aud: "finOS".to_string(),
+            roles: vec!["user".to_string()],
+        };
+
+        let jwt = encode(&Header::default(), &claims, &self.jwt_encoding)
+            .context("failed to encode JWT")?;
+
+        Ok(jwt)
     }
 }

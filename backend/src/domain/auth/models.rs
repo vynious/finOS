@@ -18,11 +18,11 @@ pub struct TokenRecord {
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
-    iat: i64,
-    exp: i64,
-    iss: String,
-    aud: String,
-    roles: Vec<String>,
+pub struct Claims {
+    pub sub: String,
+    pub iat: i64,
+    pub exp: i64,
+    pub iss: String,
+    pub aud: String,
+    pub roles: Vec<String>,
 }

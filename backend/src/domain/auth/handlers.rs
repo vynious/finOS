@@ -10,7 +10,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
-use crate::{common::app_state::AppState, domain::auth::repository::TokenRecord};
+use crate::{common::app_state::AppState, domain::auth::models::TokenRecord};
 
 #[derive(Deserialize)]
 pub struct OAuthCb {

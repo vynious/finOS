@@ -1,24 +1,10 @@
+use crate::domain::auth::models::TokenRecord;
 use async_trait::async_trait;
 use mongodb::{
     bson::{self, doc},
     Client, Collection,
 };
-use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TokenRecord {
-    pub user_id: String,
-    pub account_sub: Option<String>,
-    pub account_email: String,
-    pub account_name: Option<String>,
-    pub provider: String,
-    pub scope: String,
-    pub access_token: String,
-    pub refresh_token: Option<String>,
-    pub expires_at: Option<OffsetDateTime>,
-    pub updated_at: OffsetDateTime,
-}
 
 #[async_trait]
 pub trait TokenStore: Send + Sync {

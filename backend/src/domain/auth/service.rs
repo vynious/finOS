@@ -1,12 +1,13 @@
-use crate::domain::auth::repository::{TokenRecord, TokenStore};
+use crate::domain::auth::{models::TokenRecord, repository::TokenStore};
 use anyhow::{Context, Result};
 use oauth2::url::Url;
 use oauth2::{
-    basic::BasicClient, AuthUrl, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, RedirectUrl,
-    Scope, TokenUrl,
+    basic::BasicClient, reqwest::async_http_client, AuthUrl, ClientId, ClientSecret, CsrfToken,
+    PkceCodeChallenge, RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
 };
 use serde::Deserialize;
 use std::sync::Arc;
+use time::{Duration as TimeDuration, OffsetDateTime};
 use tokio::fs;
 
 #[derive(Deserialize)]
@@ -63,10 +64,79 @@ impl AuthService {
         (auth_url, csrf_token, pkce_verifier.secret().to_string())
     }
 
-    pub async fn store_token(&self, token: TokenRecord) -> Result<()> {
+    pub async fn get_token(&self, user_id: &str, provider: &str) -> Result<Option<TokenRecord>> {
         self.token_store
-            .store(token)
+            .get(user_id, provider)
             .await
-            .context("failed to persist oauth token")
+            .context("failed to fetch stored oauth token")
+    }
+
+    pub async fn store_token(&self, mut token: TokenRecord) -> Result<()> {
+        token.updated_at = OffsetDateTime::now_utc();
+
+        if let Some(existing) = self
+            .token_store
+            .get(&token.user_id, &token.provider)
+            .await
+            .context("failed to load existing oauth token")?
+        {
+            if token.refresh_token.is_none() {
+                // Preserve previously granted refresh tokens when Google omits them.
+                token.refresh_token = existing.refresh_token;
+            }
+            self.token_store
+                .update(token)
+                .await
+                .context("failed to update oauth token")
+        } else {
+            self.token_store
+                .store(token)
+                .await
+                .context("failed to persist oauth token")
+        }
+    }
+
+    pub async fn refresh_access_token(&self, user_id: &str, provider: &str) -> Result<TokenRecord> {
+        let mut record = self
+            .token_store
+            .get(user_id, provider)
+            .await
+            .context("failed to fetch stored oauth token for refresh")?
+            .context("no oauth token stored for user and provider")?;
+
+        let refresh = record
+            .refresh_token
+            .clone()
+            .context("stored oauth token is missing a refresh token")?;
+
+        let refreshed = self
+            .oauth
+            .exchange_refresh_token(&RefreshToken::new(refresh))
+            .request_async(async_http_client)
+            .await
+            .context("failed to refresh access token")?;
+
+        record.access_token = refreshed.access_token().secret().to_string();
+        record.expires_at = refreshed
+            .expires_in()
+            .map(|dur| OffsetDateTime::now_utc() + TimeDuration::seconds(dur.as_secs() as i64));
+        if let Some(scope) = refreshed.scopes() {
+            record.scope = scope
+                .iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<_>>()
+                .join(" ");
+        }
+        if let Some(refresh) = refreshed.refresh_token() {
+            record.refresh_token = Some(refresh.secret().to_string());
+        }
+        record.updated_at = OffsetDateTime::now_utc();
+
+        self.token_store
+            .update(record.clone())
+            .await
+            .context("failed to persist refreshed oauth token")?;
+
+        Ok(record)
     }
 }

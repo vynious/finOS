@@ -16,7 +16,6 @@ pub struct TokenRecord {
     pub updated_at: OffsetDateTime,
 }
 
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,

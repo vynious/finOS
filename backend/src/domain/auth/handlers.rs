@@ -5,6 +5,7 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar};
+use cookie::SameSite;
 use oauth2::{reqwest::async_http_client, AuthorizationCode, PkceCodeVerifier, TokenResponse};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -103,21 +104,33 @@ pub async fn google_oauth_callback(
             .ensure_google_user(&profile.email, &profile.sub, profile.name.as_deref())
             .await?;
 
-        app.auth_service
-            .store_token(TokenRecord {
-                user_id: user.email.clone(),
-                account_sub: Some(profile.sub.clone()),
-                account_email: profile.email.clone(),
-                account_name: profile.name.clone(),
-                provider: "google".to_string(),
-                scope: scope
-                    .unwrap_or_else(|| "https://www.googleapis.com/auth/gmail.readonly".into()),
-                access_token: access,
-                refresh_token: refresh,
-                expires_at,
-                updated_at: OffsetDateTime::now_utc(),
-            })
-            .await?;
+        let token_record = TokenRecord {
+            user_id: user.email.clone(),
+            account_sub: Some(profile.sub.clone()),
+            account_email: profile.email.clone(),
+            account_name: profile.name.clone(),
+            provider: "google".to_string(),
+            scope: scope.unwrap_or_else(|| "https://www.googleapis.com/auth/gmail.readonly".into()),
+            access_token: access,
+            refresh_token: refresh,
+            expires_at,
+            updated_at: OffsetDateTime::now_utc(),
+        };
+
+        let final_state_token = app.auth_service.store_token(token_record).await?;
+
+        let jwt = app
+            .auth_service
+            .issue_jwt(&final_state_token)
+            .context("issuing app session jwt")?;
+
+        let session_cookie = Cookie::build(("session", jwt))
+            .http_only(true)
+            .secure(true) // set true in HTTPS; false only for local http dev
+            .same_site(SameSite::Lax) // or Strict; use None for cross-site iframes + Secure
+            .path("/")
+            .max_age(Duration::minutes(30))
+            .build();
 
         let stale = OffsetDateTime::now_utc() - Duration::days(1);
         let jar = jar
@@ -132,7 +145,8 @@ pub async fn google_oauth_callback(
                     .path("/")
                     .expires(stale)
                     .build(),
-            );
+            )
+            .add(session_cookie);
 
         Ok::<_, anyhow::Error>((jar, Redirect::to("/app")))
     }

@@ -3,7 +3,7 @@ use crate::domain::auth::{
     repository::TokenStore,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Ok, Result};
 use jsonwebtoken::{encode, Header};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use oauth2::url::Url;
@@ -91,7 +91,7 @@ impl AuthService {
             .context("failed to fetch stored oauth token")
     }
 
-    pub async fn store_token(&self, mut token: TokenRecord) -> Result<()> {
+    pub async fn store_token(&self, mut token: TokenRecord) -> Result<TokenRecord> {
         token.updated_at = OffsetDateTime::now_utc();
 
         if let Some(existing) = self
@@ -160,7 +160,7 @@ impl AuthService {
         Ok(record)
     }
 
-    pub async fn issue_jwt(&self, token_record: &TokenRecord) -> Result<String> {
+    pub fn issue_jwt(&self, token_record: &TokenRecord) -> Result<String> {
         let claims = Claims {
             sub: token_record.user_id.clone(),
             iat: OffsetDateTime::now_utc().unix_timestamp(),

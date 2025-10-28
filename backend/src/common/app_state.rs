@@ -27,7 +27,6 @@ impl AppState {
             receipt_service: receipt_service,
             email_service: email_service,
             ingestor_service: ingestor,
-
         }
     }
 }

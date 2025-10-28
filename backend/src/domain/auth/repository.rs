@@ -8,9 +8,9 @@ use time::OffsetDateTime;
 
 #[async_trait]
 pub trait TokenStore: Send + Sync {
-    async fn store(&self, rec: TokenRecord) -> anyhow::Result<()>;
+    async fn store(&self, rec: TokenRecord) -> anyhow::Result<TokenRecord>;
     async fn get(&self, user_id: &str, provider: &str) -> anyhow::Result<Option<TokenRecord>>;
-    async fn update(&self, rec: TokenRecord) -> anyhow::Result<()>;
+    async fn update(&self, rec: TokenRecord) -> anyhow::Result<TokenRecord>;
 }
 
 #[derive(Clone)]
@@ -28,9 +28,9 @@ impl MongoTokenStore {
 
 #[async_trait]
 impl TokenStore for MongoTokenStore {
-    async fn store(&self, rec: TokenRecord) -> anyhow::Result<()> {
-        self.collection.insert_one(rec).await?;
-        Ok(())
+    async fn store(&self, rec: TokenRecord) -> anyhow::Result<TokenRecord> {
+        self.collection.insert_one(rec.clone()).await?;
+        Ok(rec)
     }
 
     async fn get(&self, user_id: &str, provider: &str) -> anyhow::Result<Option<TokenRecord>> {
@@ -39,10 +39,10 @@ impl TokenStore for MongoTokenStore {
         Ok(result)
     }
 
-    async fn update(&self, rec: TokenRecord) -> anyhow::Result<()> {
+    async fn update(&self, rec: TokenRecord) -> anyhow::Result<TokenRecord> {
         let filter = doc! { "user_id": &rec.user_id, "provider": &rec.provider };
         let update = doc! { "$set": bson::to_document(&rec)? };
         self.collection.update_one(filter, update).await?;
-        Ok(())
+        Ok(rec)
     }
 }

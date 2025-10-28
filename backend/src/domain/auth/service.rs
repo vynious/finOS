@@ -139,4 +139,8 @@ impl AuthService {
 
         Ok(record)
     }
+
+    pub async fn mint_jwt(&self, token_record: &TokenRecord) -> Result<String> {
+        
+    }
 }

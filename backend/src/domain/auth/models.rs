@@ -15,3 +15,14 @@ pub struct TokenRecord {
     pub expires_at: Option<OffsetDateTime>,
     pub updated_at: OffsetDateTime,
 }
+
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    iat: i64,
+    exp: i64,
+    iss: String,
+    aud: String,
+    roles: Vec<String>,
+}

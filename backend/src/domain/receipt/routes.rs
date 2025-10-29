@@ -1,7 +1,17 @@
-use axum::{routing::get, Router};
+use std::sync::Arc;
 
-use crate::{common::app_state::AppState, domain::receipt::handlers::get_receipts_by_email};
+use axum::{middleware, routing::get, Router};
 
-pub fn routes() -> Router<AppState> {
-    Router::new().route("/receipts/:email", get(get_receipts_by_email))
+use crate::{
+    common::app_state::AppState,
+    domain::{auth::handlers::authorization_middleware, receipt::handlers::get_receipts_by_email},
+};
+
+pub fn routes(state: Arc<AppState>) -> Router<AppState> {
+    Router::new()
+        .route("/receipts/:email", get(get_receipts_by_email))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            authorization_middleware,
+        ))
 }

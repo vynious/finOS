@@ -164,6 +164,7 @@ pub async fn authorization_middleware(
     req: Request,
     next: Next,
 ) -> Result<Response<Body>, (StatusCode, String)> {
+    // parse out the authorization token
     let token = req
         .headers()
         .get(http::header::AUTHORIZATION)

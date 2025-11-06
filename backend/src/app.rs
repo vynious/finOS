@@ -20,6 +20,7 @@ use tracing::error;
 
 pub async fn build_app() -> Result<AppState> {
     let mongo_client = new_mongo_client().await?;
+    let token_store: Arc<dyn TokenStore> = Arc::new(MongoTokenStore::new(&mongo_client));
 
     let user_repo = crate::domain::user::repository::UserRepo::new(&mongo_client);
     let receipt_repo = crate::domain::receipt::repository::ReceiptRepo::new(&mongo_client);
@@ -30,6 +31,7 @@ pub async fn build_app() -> Result<AppState> {
     let email_svc = Arc::new(EmailService::new(
         env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
         email_repo,
+        token_store.clone(),
     ));
     let ingestor = Arc::new(IngestorService::new(
         email_svc.clone(),
@@ -37,7 +39,6 @@ pub async fn build_app() -> Result<AppState> {
         user_svc.clone(),
     ));
 
-    let token_store: Arc<dyn TokenStore> = Arc::new(MongoTokenStore::new(&mongo_client));
     let auth_svc = Arc::new(AuthService::new(token_store).await?);
 
     Ok(AppState::new(

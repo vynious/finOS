@@ -1,6 +1,6 @@
-use crate::domain::email::models::*;
 use crate::domain::email::repository::EmailRepo;
 use crate::domain::receipt::models::ReceiptList;
+use crate::domain::{auth::repository::TokenStore, email::models::*};
 use anyhow::{bail, Context, Ok, Result};
 use base64::Engine;
 use ego_tree::NodeRef;
@@ -10,6 +10,7 @@ use regex::{escape, Regex};
 use reqwest::Client;
 use scraper::{Html, Node};
 use std::collections::HashSet;
+use std::sync::Arc;
 use tokio::fs;
 use yup_oauth2::{AccessToken, ApplicationSecret, InstalledFlowAuthenticator};
 
@@ -35,18 +36,20 @@ pub struct EmailService {
     client: Client,
     ollama: Ollama,
     db_client: EmailRepo,
+    token_store: Arc<dyn TokenStore>,
     model_name: String,
 }
 
 impl EmailService {
     /// Creates a new `EmailService`, loading `OLLAMA_MODEL` from the environment
     /// and initializing the HTTP and Ollama clients.
-    pub fn new(model_name: String, db_client: EmailRepo) -> Self {
+    pub fn new(model_name: String, db_client: EmailRepo, token_store: Arc<dyn TokenStore>) -> Self {
         EmailService {
             model_name: model_name,
             client: reqwest::Client::new(),
             ollama: Ollama::default(),
             db_client: db_client,
+            token_store: token_store,
         }
     }
 
@@ -94,20 +97,13 @@ impl EmailService {
         };
 
         // get authenticated token
-        let token = EmailService::cli_authenticate().await?;
-
-        // derive token string once
-        let token_str = match token.token() {
-            Some(ts) => ts.to_string(),
-            None => bail!("Failed to obtain access token"),
-        };
+        // TODO: REMOVE HARD CODED PROVIDER
+        let token = self.internal_authenticate(email_addr, "gmail").await?;
 
         println!("Getting emails based on queries");
 
         // get email ids by queries
-        let emails = self
-            .list_all_messages(&token_str, &queries.join(" "))
-            .await?;
+        let emails = self.list_all_messages(&token, &queries.join(" ")).await?;
 
         // omit out emails that are seen
         let untracked_emails: Vec<&GmailMessage> = emails
@@ -122,7 +118,7 @@ impl EmailService {
         for email in untracked_emails {
             println!("Checking email: {}", email.id);
             tracked_emails.insert(email.id.to_string());
-            let parsed_email_content = self.fetch_and_parse_email(&token_str, &email.id).await?;
+            let parsed_email_content = self.fetch_and_parse_email(&token, &email.id).await?;
 
             // check if email subject is something we want to parse
             if !re.is_match(parsed_email_content.subject.as_deref().unwrap()) {
@@ -199,35 +195,13 @@ impl EmailService {
         Ok(all_messages)
     }
 
-    /// Runs authentication based on the client_secret and returns the AccessToken
-    /// Performs OAuth installed-flow and returns a Gmail Readonly access token.
-    async fn cli_authenticate() -> Result<AccessToken> {
-        // load client secret
-        println!("Running email authentication");
-        let secret_str = fs::read_to_string("client_secret_web.json")
-            .await
-            .context("parsing web secret")?;
-        let secret: ApplicationSecret = serde_json::from_str(&secret_str).map_err(|e| {
-            eprintln!("failed to parse {}", e);
-            e
-        })?;
-
-        // create auth
-        let auth = InstalledFlowAuthenticator::builder(
-            secret,
-            yup_oauth2::InstalledFlowReturnMethod::HTTPRedirect,
-        )
-        .persist_tokens_to_disk("tokencache.json")
-        .build()
-        .await
-        .with_context(|| "Getting auth from secret")?;
-
-        // get readonly token
-        let token = auth
-            .token(&["https://www.googleapis.com/auth/gmail.readonly"])
-            .await
-            .with_context(|| "Getting Access Token")?;
-        Ok(token)
+    /// Runs authentication based on the stored OAuth token.
+    async fn internal_authenticate(&self, user_id: &str, provider: &str) -> Result<String> {
+        let token = self.token_store.get(user_id, provider).await?;
+        match token {
+            Some(token) => Ok(token.access_token.clone()),
+            None => bail!("stored OAuth token not found for {user_id}/{provider}"),
+        }
     }
 
     /// Retrieves the email based on the GmailMessage ID and extracts the content

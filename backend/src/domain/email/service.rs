@@ -11,8 +11,6 @@ use reqwest::Client;
 use scraper::{Html, Node};
 use std::collections::HashSet;
 use std::sync::Arc;
-use tokio::fs;
-use yup_oauth2::{AccessToken, ApplicationSecret, InstalledFlowAuthenticator};
 
 fn decode_base64url(s: &str) -> Result<Vec<u8>> {
     let mut s = s.replace('-', "+").replace('_', "/");

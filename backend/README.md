@@ -1,197 +1,119 @@
 # FinOS Backend
 
-A Rust-based backend service for financial receipt processing and email ingestion using domain-driven design architecture.
+FinOS is a Rust backend that connects to Gmail, ingests purchase receipts, and persists structured transactions.  
+Users authenticate with Google OAuth, after which the service issues a JWT session that is required to call the protected APIs.
 
-## 🏗️ Architecture
+---
 
-This backend follows **Domain-Driven Design (DDD)** principles with a clean separation of concerns:
+## 1. Features
+- Google OAuth 2.0 + PKCE sign-in flow (`/auth/google/login` and `/auth/google/callback`).
+- JWT session management (signed with `JWT_SECRET`, delivered via cookie or bearer header).
+- Gmail ingestion pipeline that pulls new receipts, parses them, and stores transactions.
+- Daily (configurable) ingestion job that runs in a Tokio background task.
+- MongoDB repositories for users, tokens, receipts, and email metadata.
+- Domain Driven Design layout with isolated domain services.
 
+---
+
+## 2. Project Layout
 ```
 src/
-├── common/           # Shared utilities and application state
-│   ├── app_state.rs  # Application state management
-│   ├── api_response.rs # Standardized API responses
-│   └── db_conn.rs    # Database connection utilities
-├── domain/           # Domain-specific modules
-│   ├── email/        # Email processing domain
-│   │   ├── models.rs     # Email-related data structures
-│   │   ├── service.rs    # Email processing business logic
-│   │   ├── repository.rs # Email data access layer
-│   │   ├── handler.rs    # Email HTTP handlers
-│   │   └── routes.rs     # Email API routes
-│   ├── receipt/      # Receipt management domain
-│   │   ├── models.rs     # Receipt data structures
-│   │   ├── service.rs    # Receipt business logic
-│   │   ├── repository.rs # Receipt data access
-│   │   ├── handler.rs    # Receipt HTTP handlers
-│   │   └── routes.rs     # Receipt API routes
-│   ├── user/         # User management domain
-│   │   ├── models.rs     # User data structures
-│   │   ├── service.rs    # User business logic
-│   │   ├── repository.rs # User data access
-│   │   ├── handler.rs    # User HTTP handlers
-│   │   └── routes.rs     # User API routes
-│   └── ingestor/     # Email ingestion orchestration
-│       ├── service.rs    # Ingestion coordination logic
-│       ├── handler.rs    # Ingestion HTTP handlers
-│       └── routes.rs     # Ingestion API routes
-├── app.rs           # Application setup and route mounting
-└── main.rs          # Application entry point
+├── app.rs                 # App builder, route mounting, background jobs
+├── main.rs                # Binary entrypoint
+├── common/
+│   ├── api_response.rs    # Standard API response wrapper
+│   ├── app_state.rs       # Shared state (services + JWT manager)
+│   ├── db_conn.rs         # Mongo connection helper
+│   └── jwt.rs             # Token issuance + Axum middleware
+└── domain/
+    ├── auth/              # Google OAuth + token persistence
+    ├── email/             # Gmail client and parsing pipeline
+    ├── ingestor/          # Orchestrates periodic receipt ingest
+    ├── receipt/           # Receipt store + API handler
+    └── user/              # User repository & service
 ```
 
-## 🚀 Features
+---
 
-- **Email Processing**: Automated Gmail integration for receipt extraction
-- **AI-Powered Parsing**: Uses Ollama for intelligent receipt data extraction
-- **Receipt Management**: Store and query financial receipts
-- **User Management**: User registration and synchronization tracking
-- **RESTful API**: Clean HTTP API with standardized responses
-- **MongoDB Integration**: Persistent data storage
-- **Domain-Driven Design**: Clean architecture with separated concerns
+## 3. Prerequisites
+- Rust toolchain (1.70 or newer recommended).
+- Running MongoDB instance.
+- Ollama installed with the model specified by `OLLAMA_MODEL`.
+- Google Cloud project with Gmail API enabled.
+- `client_secret_web.json` downloaded from Google (placed in `backend/`).
 
-## 🛠️ Tech Stack
+---
 
-- **Language**: Rust
-- **Web Framework**: Axum
-- **Database**: MongoDB
-- **AI Processing**: Ollama
-- **Email Integration**: Gmail API via OAuth2
-- **Serialization**: Serde (JSON/YAML)
-- **Async Runtime**: Tokio
+## 4. Configuration
+Create a `.env` file (copy from `.env-example` if present) and provide the following:
 
-## 📋 Prerequisites
+| Variable        | Description                                        | Example                                  |
+| --------------- | -------------------------------------------------- | ---------------------------------------- |
+| `MONGO_URI`     | Mongo connection string                            | `mongodb://localhost:27017`              |
+| `DATABASE`      | Mongo database name                                | `fin-os-db`                              |
+| `OLLAMA_MODEL`  | Name of the Ollama model used for parsing          | `llama3.1`                               |
+| `ISSUER_EMAILS` | JSON array of trusted sender addresses             | `["receipts@example.com","orders@shop"]` |
+| `JWT_SECRET`    | Shared secret for signing/verifying session JWTs   | `super-secret-change-me`                 |
 
-- Rust 1.70+ 
-- MongoDB instance
-- Ollama with a compatible model
-- Gmail API credentials
+Also ensure `client_secret_web.json` is placed at repo root and contains the redirect URI used by the app.
 
-## ⚙️ Setup
+---
 
-1. **Clone and navigate to the backend directory:**
-   ```bash
-   cd backend
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   cargo build
-   ```
-
-3. **Configure environment variables:**
-   ```bash
-   cp .env-example .env
-   ```
-   
-   Edit `.env` with your configuration:
-   ```env
-   MONGO_URI=mongodb://localhost:27017
-   DATABASE=fin-os-db
-   COLLECTION=receipts
-   OLLAMA_MODEL=llama3.1
-   ISSUER_EMAILS=receipts@example.com,orders@shop.com
-   ```
-
-4. **Set up Gmail API credentials:**
-   - Place your `client_secret.json` in the backend root directory
-   - Ensure OAuth2 is properly configured for Gmail access
-
-5. **Start Ollama service:**
-   ```bash
-   ollama serve
-   ollama pull llama3.1  # or your preferred model
-   ```
-
-## 🏃‍♂️ Running the Application
-
+## 5. Running Locally
 ```bash
+cd backend
 cargo run
 ```
 
-The server will start on `http://localhost:3000`
+The server listens on `http://localhost:3000`.  
+During startup a background job is spawned via `start_sync_job` (interval defaults to 60 seconds; adjust in `main.rs` as needed).
 
-## 📡 API Endpoints
+---
 
-### Health Check
-- `GET /health` - Service health status
+## 6. Authentication Flow
+1. **Login**  
+   `GET /auth/google/login` redirects to Google with PKCE + Gmail readonly scope.
+2. **Callback**  
+   `GET /auth/google/callback` exchanges the auth code, persists tokens, and issues a signed JWT cookie (`finos_session`).  
+   The response redirects to `/app`.
+3. **Protected calls**  
+   Downstream requests must include the JWT either as:
+   - Cookie: `finos_session=<token>`
+   - Header: `Authorization: Bearer <token>`
 
-### User Management
-- `GET /users` - Get all active users
-- `POST /users` - Register a new user
-- `POST /users/sync` - Update user synchronization status
+`common::jwt::require_jwt` validates the token on guarded routes and inserts the decoded claims.
 
-### Receipt Management
-- `GET /receipts/:email` - Get receipts for a specific email
-- `POST /receipts` - Store new receipts
+---
 
-### Email Processing
-- `POST /emails/process` - Trigger email processing
+## 7. Available Routes
+| Method | Path                     | Auth? | Description                                  |
+| ------ | ------------------------ | ----- | -------------------------------------------- |
+| GET    | `/`                      | No    | Simple hello world response                  |
+| GET    | `/auth/google/login`     | No    | Initiate Google OAuth PKCE flow              |
+| GET    | `/auth/google/callback`  | No    | Exchange code, set session cookie            |
+| GET    | `/receipts/:email`       | Yes   | Fetch receipts for an email (JWT protected)  |
 
-## 🔧 Configuration
+The receipt route uses the JWT middleware attached in `domain/receipt/routes.rs`.
 
-### Environment Variables
+---
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017` |
-| `DATABASE` | Database name | `fin-os-db` |
-| `COLLECTION` | Default collection name | `receipts` |
-| `OLLAMA_MODEL` | Ollama model for AI processing | `llama3.1` |
-| `ISSUER_EMAILS` | Comma-separated issuer email addresses | `receipts@example.com` |
+## 8. Gmail + Ollama Integration
+- `EmailService::query_and_process_untracked` fetches unseen Gmail messages, filters by keywords, converts HTML to text, and sends it to Ollama for structured extraction.
+- Parsed receipts get handed to `ReceiptService` and persisted.
+- `IngestorService::sync_receipts` loops through active users and orchestrates the pipeline.
 
-### Gmail API Setup
+When running locally you may need to start Ollama and ensure the model is available:
+```bash
+ollama serve
+ollama pull <model-name>
+```
 
-1. Create a Google Cloud Project
-2. Enable Gmail API
-3. Create OAuth2 credentials
-4. Download `client_secret.json`
-5. Place in backend root directory
+---
 
-## 🏗️ Development
+## 9. Development Notes
+- The codebase is still evolving; not every domain exposes HTTP routes yet.
+- JWT signing currently uses HS256 via the shared secret. Rotate `JWT_SECRET` regularly.
+- `start_sync_job` uses `tokio::time::interval`—tweak the cadence or integrate a cron scheduler if needed.
+- Mongo collections are created lazily by repositories (`users`, `receipts`, `tokens`, etc.).
 
-### Project Structure
-
-The project follows Domain-Driven Design principles:
-
-- **Models**: Domain-specific data structures
-- **Services**: Business logic and orchestration
-- **Repositories**: Data access layer
-- **Handlers**: HTTP request/response handling
-- **Routes**: API endpoint definitions
-
-### Adding New Domains
-
-1. Create domain directory: `src/domain/new_domain/`
-2. Add modules: `models.rs`, `service.rs`, `repository.rs`, `handler.rs`, `routes.rs`
-3. Update `src/domain/mod.rs` with new domain declaration
-4. Add to `AppState` if needed
-
-### Database Schema
-
-The application uses MongoDB with the following collections:
-- `users` - User accounts and synchronization data
-- `receipts` - Financial receipt data
-- `emails` - Email processing metadata
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-1. **MongoDB Connection Failed**
-   - Verify `MONGO_URI` is correct
-   - Ensure MongoDB is running
-   - Check network connectivity
-
-2. **Ollama Model Not Found**
-   - Run `ollama pull <model_name>`
-   - Verify `OLLAMA_MODEL` environment variable
-
-3. **Gmail API Authentication Issues**
-   - Verify `client_secret.json` is present
-   - Check OAuth2 scopes
-   - Ensure credentials are valid
-
-4. **Compilation Errors**
-   - Run `cargo clean && cargo build`
-   - Check Rust version compatibility
-   - Verify all dependencies are available
+For questions or contributions, review the domain modules—each follows the pattern: `models`, `repository`, `service`, `handlers`, `routes`.

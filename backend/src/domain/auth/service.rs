@@ -36,7 +36,6 @@ pub struct AuthService {
 
 impl AuthService {
     pub async fn new(token_store: Arc<dyn TokenStore>) -> Result<Self> {
-        let secret = std::env::var("JWT_SECRET").unwrap();
         let secret_str = fs::read_to_string("client_secret_web.json")
             .await
             .context("Failed to read client secret file")?;

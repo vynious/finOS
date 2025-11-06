@@ -14,7 +14,9 @@ use crate::{
 };
 use anyhow::Result;
 use axum::{routing::get, Router};
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, time::Duration};
+use tokio::time::interval;
+use tracing::error;
 
 pub async fn build_app() -> Result<AppState> {
     let mongo_client = new_mongo_client().await?;
@@ -51,4 +53,20 @@ pub fn mount_routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/", get(|| async { "Hello World" }))
         .merge(auth_routes(state))
+}
+
+pub fn start_sync_job(duration: u64, state: Arc<AppState>) {
+    let _ = tokio::spawn(async move {
+        let mut ticker = interval(Duration::from_secs(duration));
+        loop {
+            println!("starting countdown");
+            ticker.tick().await;
+            if let Err(e) = state.ingestor_service.sync_receipts().await {
+                error!(error = %e, "ingestor failed");
+                for cause in e.chain().skip(1) {
+                    error!(%cause, "caused by");
+                }
+            }
+        }
+    });
 }

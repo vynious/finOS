@@ -38,7 +38,7 @@ impl ReceiptRepo {
     }
 
     pub async fn by_email(&self, email: &str) -> Result<Vec<Receipt>> {
-        self.find_by(doc! {"email": email}).await
+        self.find_by(doc! {"owner": email}).await
     }
 
     pub async fn by_email_and_month(
@@ -56,7 +56,7 @@ impl ReceiptRepo {
         };
 
         self.find_by(doc! {
-            "email": email,
+            "owner": email,
             "timestamp": {
                 "$gte": start_date.timestamp(),
                 "$lt": end_date.timestamp()
@@ -72,7 +72,7 @@ impl ReceiptRepo {
         max_amount: f64,
     ) -> Result<Vec<Receipt>> {
         self.find_by(doc! {
-            "email": email,
+            "owner": email,
             "amount": {
                 "$gte": min_amount,
                 "$lte": max_amount
@@ -83,7 +83,7 @@ impl ReceiptRepo {
 
     pub async fn by_email_and_merchant(&self, email: &str, merchant: &str) -> Result<Vec<Receipt>> {
         self.find_by(doc! {
-            "email": email,
+            "owner": email,
             "merchant": {"$regex": merchant, "$options": "i"}
         })
         .await

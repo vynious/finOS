@@ -2,7 +2,7 @@
 
 import { useCurrency } from "@/context/currency-context";
 import type { DateRange } from "@/types";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 type SectionKey = "transactions" | "settings";
 
@@ -65,9 +65,21 @@ export function AppShell({
         [email],
     );
 
+    const [navOpen, setNavOpen] = useState(false);
+
     return (
-        <div className="grid min-h-screen grid-cols-[240px_1fr] bg-slate-950 text-slate-50">
-            <aside className="flex flex-col border-r border-slate-900/80 bg-slate-950/80 px-6 py-8">
+        <div className="min-h-screen bg-slate-950 text-slate-50 lg:grid lg:grid-cols-[240px_1fr]">
+            {navOpen && (
+                <button
+                    type="button"
+                    aria-label="Close navigation"
+                    className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+                    onClick={() => setNavOpen(false)}
+                />
+            )}
+            <aside
+                className={`fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-slate-900/80 bg-slate-950/95 px-6 py-8 transition-transform duration-200 lg:static lg:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+            >
                 <div className="mb-10 flex items-center gap-3">
                     <div className="rounded-2xl bg-emerald-400/10 p-3 text-emerald-300">
                         ⧉
@@ -119,81 +131,136 @@ export function AppShell({
             </aside>
 
             <main className="flex flex-col">
-                <header className="border-b border-slate-900/60 bg-slate-950/60 px-10 py-6 backdrop-blur">
-                    <div className="flex items-center justify-between gap-6">
+                <header className="sticky top-0 z-20 border-b border-slate-900/60 bg-slate-950/80 px-4 py-4 backdrop-blur md:px-6 lg:px-10">
+                    <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">
                                 {sectionMeta[activeSection].kicker}
                             </p>
-                            <h2 className="text-2xl font-semibold text-white">
+                            <h2 className="text-xl font-semibold text-white sm:text-2xl">
                                 {sectionMeta[activeSection].title}
                             </h2>
                             <p className="text-sm text-slate-400">
                                 {sectionMeta[activeSection].description}
                             </p>
                         </div>
-                        {activeSection === "transactions" && (
-                            <div className="flex items-center gap-3">
-                                <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
-                                    {email}
-                                </span>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 p-1 text-sm text-slate-400">
-                                        {rangeOptions.map((opt) => (
-                                            <button
-                                                key={opt.value}
-                                                type="button"
-                                                onClick={() =>
-                                                    onRangeChange(opt.value)
-                                                }
-                                                className={`rounded-full px-3 py-1 transition ${
-                                                    opt.value === dateRange
-                                                        ? "bg-emerald-400/20 text-white"
-                                                        : "hover:bg-slate-800"
-                                                }`}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <label className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs uppercase tracking-widest text-slate-400">
-                                        Currency
-                                        <select
-                                            value={currency}
-                                            onChange={(event) =>
-                                                setCurrency(
-                                                    event.target
-                                                        .value as (typeof supported)[number],
-                                                )
-                                            }
-                                            className="bg-transparent text-white outline-none"
-                                        >
-                                            {supported.map((code) => (
-                                                <option key={code} value={code}>
-                                                    {code}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                </div>
-                                <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5">
-                                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400/20 text-sm text-emerald-300">
-                                        {initials}
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-xl text-white lg:hidden"
+                                onClick={() => setNavOpen((prev) => !prev)}
+                                aria-label="Toggle navigation"
+                            >
+                                ☰
+                            </button>
+                            {activeSection === "transactions" && (
+                                <div className="hidden items-center gap-3 lg:flex">
+                                    <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
+                                        {email}
                                     </span>
-                                    <div>
-                                        <p className="text-xs text-slate-400">
-                                            Signed in
-                                        </p>
-                                        <p className="text-sm text-white">
-                                            {email}
-                                        </p>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 p-1 text-sm text-slate-400">
+                                            {rangeOptions.map((opt) => (
+                                                <button
+                                                    key={opt.value}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onRangeChange(opt.value)
+                                                    }
+                                                    className={`rounded-full px-3 py-1 transition ${
+                                                        opt.value === dateRange
+                                                            ? "bg-emerald-400/20 text-white"
+                                                            : "hover:bg-slate-800"
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <label className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs uppercase tracking-widest text-slate-400">
+                                            Currency
+                                            <select
+                                                value={currency}
+                                                onChange={(event) =>
+                                                    setCurrency(
+                                                        event.target
+                                                            .value as (typeof supported)[number],
+                                                    )
+                                                }
+                                                className="bg-transparent text-white outline-none"
+                                            >
+                                                {supported.map((code) => (
+                                                    <option
+                                                        key={code}
+                                                        value={code}
+                                                    >
+                                                        {code}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5">
+                                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400/20 text-sm text-emerald-300">
+                                            {initials}
+                                        </span>
+                                        <div>
+                                            <p className="text-xs text-slate-400">
+                                                Signed in
+                                            </p>
+                                            <p className="text-sm text-white">
+                                                {email}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
+                    {activeSection === "transactions" && (
+                        <div className="mt-4 flex flex-wrap items-center gap-3 lg:hidden">
+                            <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 p-1 text-sm text-slate-400">
+                                {rangeOptions.map((opt) => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => onRangeChange(opt.value)}
+                                        className={`rounded-full px-3 py-1 transition ${
+                                            opt.value === dateRange
+                                                ? "bg-emerald-400/20 text-white"
+                                                : "hover:bg-slate-800"
+                                        }`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <label className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs uppercase tracking-widest text-slate-400">
+                                Currency
+                                <select
+                                    value={currency}
+                                    onChange={(event) =>
+                                        setCurrency(
+                                            event.target
+                                                .value as (typeof supported)[number],
+                                        )
+                                    }
+                                    className="bg-transparent text-white outline-none"
+                                >
+                                    {supported.map((code) => (
+                                        <option key={code} value={code}>
+                                            {code}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
+                                {email}
+                            </span>
+                        </div>
+                    )}
                 </header>
-                <section className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950 px-10 py-8">
+                <section className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
                     {children}
                 </section>
             </main>

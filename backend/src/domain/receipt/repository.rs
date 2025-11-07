@@ -1,5 +1,3 @@
-use std::env;
-
 use crate::domain::receipt::models::{Receipt, ReceiptList};
 use anyhow::{Context, Result};
 use chrono::{TimeZone, Utc};
@@ -15,11 +13,9 @@ pub struct ReceiptRepo {
 }
 
 impl ReceiptRepo {
-    pub fn new(client: &Client) -> Self {
+    pub fn new(client: &Client, database: &str) -> Self {
         ReceiptRepo {
-            collection: client
-                .database(&env::var("DATABASE").expect("Unspecified Database"))
-                .collection("receipts"),
+            collection: client.database(database).collection("receipts"),
         }
     }
 

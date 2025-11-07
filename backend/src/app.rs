@@ -12,19 +12,21 @@ use crate::{
         user::service::UserService,
     },
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{routing::get, Router};
+use backend::config::AppConfig;
 use std::{env, sync::Arc, time::Duration};
 use tokio::time::interval;
 use tracing::error;
 
-pub async fn build_app() -> Result<AppState> {
-    let mongo_client = new_mongo_client().await?;
+pub async fn build_app(config: AppConfig) -> Result<AppState> {
+    let mongo_client = new_mongo_client(&config.mongo_uri, &config.database).await?;
     let token_store: Arc<dyn TokenStore> = Arc::new(MongoTokenStore::new(&mongo_client));
-
-    let user_repo = crate::domain::user::repository::UserRepo::new(&mongo_client);
-    let receipt_repo = crate::domain::receipt::repository::ReceiptRepo::new(&mongo_client);
-    let email_repo = crate::domain::email::repository::EmailRepo::new(&mongo_client);
+    let user_repo = crate::domain::user::repository::UserRepo::new(&mongo_client, &config.database);
+    let receipt_repo =
+        crate::domain::receipt::repository::ReceiptRepo::new(&mongo_client, &config.database);
+    let email_repo =
+        crate::domain::email::repository::EmailRepo::new(&mongo_client, &config.database);
 
     let user_svc = Arc::new(UserService::new(user_repo));
     let receipt_svc = Arc::new(ReceiptService::new(receipt_repo));
@@ -37,9 +39,9 @@ pub async fn build_app() -> Result<AppState> {
         email_svc.clone(),
         receipt_svc.clone(),
         user_svc.clone(),
+        config.issuer_emails.clone(),
     ));
-
-    let auth_svc = Arc::new(AuthService::new(token_store).await?);
+    let auth_svc = Arc::new(AuthService::new(token_store, config.frontend_app_url.clone()).await?);
 
     Ok(AppState::new(
         auth_svc,

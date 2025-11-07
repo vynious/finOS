@@ -32,11 +32,11 @@ pub struct AuthService {
     jwt_encoding: EncodingKey,
     jwt_decoding: DecodingKey,
     jwt_validation: Validation,
+    pub frontend_url: String,
 }
 
 impl AuthService {
-    pub async fn new(token_store: Arc<dyn TokenStore>) -> Result<Self> {
-
+    pub async fn new(token_store: Arc<dyn TokenStore>, frontend_url: String) -> Result<Self> {
         let secret_str = fs::read_to_string("client_secret_web.json")
             .await
             .context("Failed to read client secret file")?;
@@ -46,7 +46,7 @@ impl AuthService {
 
         let redirect_uri = secret
             .redirect_uris
-            .first()
+            .last()
             .context("No redirect URIs found in client secret")?;
 
         let oauth = BasicClient::new(
@@ -67,6 +67,7 @@ impl AuthService {
             jwt_encoding,
             jwt_decoding,
             jwt_validation,
+            frontend_url,
         })
     }
 
@@ -77,6 +78,16 @@ impl AuthService {
             .authorize_url(CsrfToken::new_random)
             .add_scope(Scope::new(
                 "https://www.googleapis.com/auth/gmail.readonly".to_string(),
+            ))
+            .add_scope(Scope::new("openid".into()))
+            .add_scope(Scope::new(
+                "https://www.googleapis.com/auth/userinfo.email".into(),
+            ))
+            .add_scope(Scope::new(
+                "https://www.googleapis.com/auth/userinfo.profile".into(),
+            ))
+            .add_scope(Scope::new(
+                "https://www.googleapis.com/auth/gmail.readonly".into(),
             ))
             .set_pkce_challenge(pkce_challenge.clone())
             .url();

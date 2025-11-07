@@ -13,10 +13,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
-use crate::{
-    common::app_state::AppState,
-    domain::auth::{models::TokenRecord},
-};
+use crate::{common::app_state::AppState, domain::auth::models::TokenRecord};
 
 #[derive(Deserialize)]
 pub struct OAuthCb {
@@ -153,7 +150,7 @@ pub async fn google_oauth_callback(
             )
             .add(session_cookie);
 
-        Ok::<_, anyhow::Error>((jar, Redirect::to("/app")))
+        Ok::<_, anyhow::Error>((jar, Redirect::to(&app.auth_service.frontend_url)))
     }
     .await
     .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))

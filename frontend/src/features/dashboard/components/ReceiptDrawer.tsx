@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useCurrency } from "@/context/currency-context";
-import { currencyRates, type CurrencyCode } from "@/lib/config";
+import type { CurrencyCode } from "@/lib/config";
 import type { Receipt } from "@/types";
 
 type ReceiptDrawerProps = {
@@ -20,7 +20,7 @@ export function ReceiptDrawer({
     onClose,
     onUpdateCategories,
 }: ReceiptDrawerProps) {
-    const { convert, format } = useCurrency();
+    const { convert, format, supported } = useCurrency();
     const [localCategories, setLocalCategories] = useState<string[]>([]);
     const [newCategory, setNewCategory] = useState("");
     const [saving, setSaving] = useState(false);
@@ -33,6 +33,11 @@ export function ReceiptDrawer({
         setSaving(false);
     }, [receipt]);
 
+    const supportedSet = useMemo(
+        () => new Set<CurrencyCode>(supported),
+        [supported],
+    );
+
     const canSave = useMemo(() => {
         if (!receipt) return false;
         const original = receipt.categories ?? [];
@@ -41,7 +46,7 @@ export function ReceiptDrawer({
     }, [receipt, localCategories]);
 
     if (!receipt) return null;
-    const baseCurrency = currencyRates[receipt.currency as CurrencyCode]
+    const baseCurrency = supportedSet.has(receipt.currency as CurrencyCode)
         ? (receipt.currency as CurrencyCode)
         : "USD";
     const convertedAmount = format(convert(receipt.amount, baseCurrency));

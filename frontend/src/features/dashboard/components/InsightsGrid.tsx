@@ -50,8 +50,8 @@ export function InsightsGrid({
 }: InsightsGridProps) {
     const { format, currency } = useCurrency();
     return (
-        <div className="grid grid-cols-12 gap-6">
-            <section className="col-span-12 grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <section className="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
                     {
                         label: "Total spend",
@@ -93,7 +93,7 @@ export function InsightsGrid({
                 ))}
             </section>
 
-            <article className="col-span-8 rounded-3xl border border-slate-900/60 bg-gradient-to-br from-slate-900/90 to-slate-950/70 p-6">
+            <article className="col-span-12 rounded-3xl border border-slate-900/60 bg-gradient-to-br from-slate-900/90 to-slate-950/70 p-6 lg:col-span-8">
                 <header className="mb-4 flex items-center justify-between text-sm">
                     <div>
                         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
@@ -161,7 +161,7 @@ export function InsightsGrid({
                 </div>
             </article>
 
-            <article className="col-span-4 rounded-3xl border border-slate-900/60 bg-slate-950/70 p-6">
+            <article className="col-span-12 rounded-3xl border border-slate-900/60 bg-slate-950/70 p-6 lg:col-span-4">
                 <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
                     Category mix
                 </p>

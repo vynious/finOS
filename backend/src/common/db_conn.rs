@@ -4,19 +4,17 @@ use mongodb::{
     options::{ClientOptions, ServerApi, ServerApiVersion},
     Client,
 };
-use std::env;
 
-pub async fn new_mongo_client() -> Result<Client> {
+pub async fn new_mongo_client(mongo_uri: &str, database: &str) -> Result<Client> {
     println!("Spawning Mongo Client");
-    let db_url = env::var("MONGO_URI").expect("MONGO_URI must be set");
-    let mut client_opt = ClientOptions::parse(db_url)
+    let mut client_opt = ClientOptions::parse(mongo_uri)
         .await
         .context("Failed to parse DB url")?;
     let server_api = ServerApi::builder().version(ServerApiVersion::V1).build();
     client_opt.server_api = Some(server_api);
     let client = Client::with_options(client_opt)?;
     client
-        .database("fin-os-db")
+        .database(database)
         .run_command(doc! { "ping": 1 })
         .await
         .context("Failed test ping")?;

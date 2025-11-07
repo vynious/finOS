@@ -1,7 +1,4 @@
-use std::{
-    env,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::domain::{
     email::service::EmailService,
@@ -19,6 +16,7 @@ pub struct IngestorService {
     receipt_service: Arc<ReceiptService>,
     email_service: Arc<EmailService>,
     user_service: Arc<UserService>,
+    issuers_email: Vec<String>,
 }
 
 impl IngestorService {
@@ -26,11 +24,13 @@ impl IngestorService {
         email_service: Arc<EmailService>,
         receipt_service: Arc<ReceiptService>,
         user_service: Arc<UserService>,
+        issuers_email: Vec<String>,
     ) -> Self {
         IngestorService {
             receipt_service: receipt_service,
             email_service: email_service,
             user_service: user_service,
+            issuers_email,
         }
     }
 
@@ -71,7 +71,7 @@ impl IngestorService {
             user_for_task.last_synced = Some(now_ms);
             updated_users.push(user_for_task.clone());
 
-            let queries = IngestorService::build_query(now_ms, &user_for_task);
+            let queries = self.build_query(now_ms, &user_for_task);
             let email_service = email_service.clone();
             handles.push(tokio::spawn(async move {
                 email_service
@@ -100,7 +100,7 @@ impl IngestorService {
         diff_days.to_string()
     }
 
-    fn build_query(current_time: i64, user: &User) -> Vec<String> {
+    fn build_query(&self, current_time: i64, user: &User) -> Vec<String> {
         let category = "primary";
         let days: String = match user.last_synced {
             Some(last_synced) => IngestorService::get_time_query(current_time, last_synced),
@@ -109,13 +109,10 @@ impl IngestorService {
                 "7".to_string()
             }
         };
-        let raw = env::var("ISSUER_EMAILS").expect("Missing ISSUER_EMAILS");
-        let issuers_email: Vec<String> =
-            serde_json::from_str(&raw).expect("ISSUER_EMAILS must be a JSON array of strings");
 
         vec![
             format!("category:{}", category),
-            format!("from:({})", issuers_email.join(" OR ")),
+            format!("from:({})", self.issuers_email.join(" OR ")),
             format!("newer_than:{}d", days),
         ]
     }

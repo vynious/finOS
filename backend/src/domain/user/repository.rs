@@ -2,7 +2,6 @@ use crate::domain::user::models::User;
 use anyhow::{Context, Result};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Client, Collection};
-use std::env;
 
 #[derive(Clone)]
 pub struct UserRepo {
@@ -10,11 +9,9 @@ pub struct UserRepo {
 }
 
 impl UserRepo {
-    pub fn new(client: &Client) -> Self {
+    pub fn new(client: &Client, database: &str) -> Self {
         UserRepo {
-            collection: client
-                .database(&env::var("DATABASE").expect("Unspecified Database"))
-                .collection("users"),
+            collection: client.database(database).collection("users"),
         }
     }
 

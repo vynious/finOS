@@ -39,6 +39,7 @@ impl UserRepo {
         email: &str,
         sub: &str,
         name: Option<&str>,
+        access: &str,
     ) -> Result<()> {
         self.collection
             .update_one(
@@ -47,7 +48,8 @@ impl UserRepo {
                     "$set": {
                         "google_sub": sub,
                         "name": name.unwrap_or(email),
-                        "active": true
+                        "active": true,
+                        "gmail_token": Some(access.to_string())
                     }
                 },
             )

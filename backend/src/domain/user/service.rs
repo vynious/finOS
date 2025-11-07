@@ -43,11 +43,12 @@ impl UserService {
         email: &str,
         sub: &str,
         name: Option<&str>,
+        access: &str,
     ) -> Result<User> {
         if let Some(mut user) = self.find_by_email(email).await? {
             if user.google_sub.as_deref() != Some(sub) {
                 self.db_client
-                    .update_google_profile(email, sub, name)
+                    .update_google_profile(email, sub, name, access)
                     .await?;
                 user.google_sub = Some(sub.to_string());
                 if let Some(new_name) = name {
@@ -67,7 +68,7 @@ impl UserService {
             active: true,
             last_synced: None,
             secret: None,
-            gmail_token: None,
+            gmail_token: Some(access.to_string()),
         };
 
         self.register_new_user(new_user.clone()).await?;

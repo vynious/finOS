@@ -8,7 +8,7 @@ use crate::{
         },
         email::service::EmailService,
         ingestor::service::IngestorService,
-        receipt::service::ReceiptService,
+        receipt::{routes::routes as receipt_routes, service::ReceiptService},
         user::service::UserService,
     },
 };
@@ -55,7 +55,8 @@ pub async fn build_app(config: AppConfig) -> Result<AppState> {
 pub fn mount_routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/", get(|| async { "Hello World" }))
-        .merge(auth_routes(state))
+        .merge(auth_routes(state.clone()))
+        .merge(receipt_routes(state))
 }
 
 pub fn start_sync_job(duration: u64, state: Arc<AppState>) {

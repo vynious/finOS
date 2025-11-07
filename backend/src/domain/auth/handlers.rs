@@ -103,7 +103,12 @@ pub async fn google_oauth_callback(
 
         let user = app
             .user_service
-            .ensure_google_user(&profile.email, &profile.sub, profile.name.as_deref())
+            .ensure_google_user(
+                &profile.email,
+                &profile.sub,
+                profile.name.as_deref(),
+                &access,
+            )
             .await?;
 
         let token_record = TokenRecord {
@@ -115,7 +120,7 @@ pub async fn google_oauth_callback(
             scope: scope.unwrap_or_else(|| "https://www.googleapis.com/auth/gmail.readonly".into()),
             access_token: access,
             refresh_token: refresh,
-            expires_at,
+            expires_at: expires_at,
             updated_at: OffsetDateTime::now_utc(),
         };
 

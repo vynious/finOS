@@ -9,6 +9,12 @@ mod domain;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .with_target(false)
+        .compact()
+        .init();
+
     dotenv().ok();
     let config = AppConfig::from_env()?;
     let app_state = Arc::new(build_app(config).await.context("Building App")?);

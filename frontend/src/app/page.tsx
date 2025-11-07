@@ -1,10 +1,45 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { cookies } from "next/headers";
+
+import { config } from "@/lib/config";
+import type { ApiResponse, PublicUser } from "@/types";
+
 const checkmarks = [
     "Google OAuth + PKCE with per-user token vault",
     "24/7 Gmail ingest orchestrator with Ollama parsing",
     "Receipts persisted to Mongo for analytics-grade querying",
 ];
 
-export default function LandingPage() {
+async function getSession(): Promise<PublicUser | null> {
+    const sessionCookie = (await cookies()).get("session");
+    if (!sessionCookie) return null;
+
+    try {
+        const response = await fetch(`${config.apiBaseUrl}/users/me`, {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                cookie: `session=${sessionCookie.value}`,
+            },
+        });
+        if (!response.ok) {
+            return null;
+        }
+        const payload: ApiResponse<PublicUser> = await response.json();
+        return payload.success ? (payload.data ?? null) : null;
+    } catch {
+        return null;
+    }
+}
+
+export default async function LandingPage() {
+    const user = await getSession();
+    if (user) {
+        redirect("/dashboard");
+    }
+
     return (
         <div className="min-h-screen bg-slate-950 text-white">
             <header className="mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-16 text-center">
@@ -23,18 +58,18 @@ export default function LandingPage() {
                     feels like Ramp + Plaid, without building another data pipe.
                 </p>
                 <div className="flex flex-wrap justify-center gap-4">
-                    <a
+                    <Link
                         href="/auth/google/login"
                         className="rounded-full bg-emerald-400 px-6 py-3 font-semibold text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-[1.02]"
                     >
                         Connect Gmail
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                         href="/dashboard"
                         className="rounded-full border border-slate-700 px-6 py-3 font-semibold text-white hover:border-emerald-300"
                     >
                         Explore dashboard →
-                    </a>
+                    </Link>
                 </div>
                 <div className="mx-auto grid gap-4 text-left sm:grid-cols-3">
                     {checkmarks.map((item) => (

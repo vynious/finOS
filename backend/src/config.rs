@@ -19,8 +19,8 @@ impl AppConfig {
             env::var("DATABASE").context("DATABASE must be set (Mongo database name)")?;
         let ollama_model =
             env::var("OLLAMA_MODEL").context("OLLAMA_MODEL must be set (Model name)")?;
-        let frontend_app_url = env::var("FRONTEND_APP_URL")
-            .unwrap_or_else(|_| "http://localhost:3000/dashboard".into());
+        let frontend_app_url =
+            env::var("FRONTEND_APP_URL").context("FRONTEND_APP_URL must be set.")?;
         let raw_issuers = env::var("ISSUER_EMAILS")
             .context("ISSUER_EMAILS must be set (JSON array of strings)")?;
         let issuer_emails: Vec<String> = serde_json::from_str(&raw_issuers)

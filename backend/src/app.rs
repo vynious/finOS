@@ -22,7 +22,10 @@ use backend::config::AppConfig;
 use reqwest::Method;
 use std::{env, sync::Arc, time::Duration};
 use tokio::time::interval;
-use tower_http::cors::{AllowHeaders, AllowMethods, Any, CorsLayer};
+use tower_http::{
+    cors::{AllowHeaders, AllowMethods, Any, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing::error;
 
 pub async fn build_app(config: AppConfig) -> Result<AppState> {
@@ -67,7 +70,7 @@ pub fn mount_routes(state: Arc<AppState>) -> Router {
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::OPTIONS])
         .allow_origin(
             std::env::var("FRONTEND_APP_URL")
-                .unwrap_or_else(|_| "http://localhost:3000".into())
+                .expect("FRONTEND_APP_URL needs to be set!")
                 .parse::<HeaderValue>()
                 .expect("valid FRONTEND_APP_URL"),
         )
@@ -86,6 +89,7 @@ pub fn mount_routes(state: Arc<AppState>) -> Router {
         .merge(receipt_routes(receipt_state))
         .merge(user_routes(user_state))
         .layer(cors)
+        .layer(TraceLayer::new_for_http())
 }
 
 pub fn start_sync_job(duration: u64, state: Arc<AppState>) {

@@ -85,10 +85,13 @@ impl IngestorService {
                 all_receipts.transactions.extend(recipts.transactions);
             }
         }
-        // store receipts
-        self.receipt_service.store(all_receipts).await?;
         // update user last synced
         self.user_service.update_last_synced(updated_users).await?;
+        if all_receipts.transactions.is_empty() {
+            return Ok(());
+        }
+        // store receipts
+        self.receipt_service.store(all_receipts).await?;
         Ok(())
     }
 

@@ -36,6 +36,7 @@ export function useReceipts(filters: ReceiptFilters) {
                 if (response.status === 401 || response.status === 403) {
                     setReceipts([]);
                     setError(null);
+                    console.log(response)
                     return false;
                 }
                 if (!response.ok) {

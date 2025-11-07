@@ -2,13 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import {
-    applyFilters,
-    buildCategorySlices,
-    buildSummary,
-    buildTimeSeries,
-    detectAnomalies,
-} from "@/lib/analytics";
+import { applyFilters } from "@/lib/analytics";
 import { config } from "@/lib/config";
 import { sampleReceipts } from "@/lib/sampleData";
 import type { Receipt, ReceiptFilters } from "@/types";
@@ -68,11 +62,6 @@ export function useReceipts(filters: ReceiptFilters) {
         [receipts, filters],
     );
 
-    const summary = useMemo(() => buildSummary(filtered), [filtered]);
-    const series = useMemo(() => buildTimeSeries(filtered), [filtered]);
-    const categories = useMemo(() => buildCategorySlices(filtered), [filtered]);
-    const anomalies = useMemo(() => detectAnomalies(filtered), [filtered]);
-
     const updateCategories = useCallback(
         async (receiptId: string, categories: string[]) => {
             const nextCategories = categories.filter(
@@ -95,10 +84,6 @@ export function useReceipts(filters: ReceiptFilters) {
     return {
         receipts,
         filtered,
-        summary,
-        series,
-        categories,
-        anomalies,
         loading,
         error,
         refresh: fetchReceipts,

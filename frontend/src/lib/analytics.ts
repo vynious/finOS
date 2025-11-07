@@ -7,6 +7,10 @@ import type {
     TimeSeriesPoint,
 } from "@/types";
 
+type AmountProjector = (receipt: Receipt) => number;
+
+const defaultProjector: AmountProjector = (receipt) => receipt.amount;
+
 const rangeToDays: Record<ReceiptFilters["range"], number> = {
     "7d": 7,
     "30d": 30,
@@ -61,14 +65,17 @@ export function applyFilters(
     return data;
 }
 
-export function buildSummary(receipts: Receipt[]): InsightSummary {
+export function buildSummary(
+    receipts: Receipt[],
+    project: AmountProjector = defaultProjector,
+): InsightSummary {
     const txCount = receipts.length;
-    const totalSpend = receipts.reduce((acc, tx) => acc + tx.amount, 0);
+    const totalSpend = receipts.reduce((acc, tx) => acc + project(tx), 0);
     const avgTicket = txCount === 0 ? 0 : totalSpend / txCount;
 
     const merchantTotals = receipts.reduce<Record<string, number>>(
         (acc, tx) => {
-            acc[tx.merchant] = (acc[tx.merchant] ?? 0) + tx.amount;
+            acc[tx.merchant] = (acc[tx.merchant] ?? 0) + project(tx);
             return acc;
         },
         {},
@@ -88,9 +95,16 @@ export function buildSummary(receipts: Receipt[]): InsightSummary {
 }
 
 export function buildTimeSeries(receipts: Receipt[]): TimeSeriesPoint[] {
+    return buildTimeSeriesWithProjector(receipts, defaultProjector);
+}
+
+export function buildTimeSeriesWithProjector(
+    receipts: Receipt[],
+    project: AmountProjector,
+): TimeSeriesPoint[] {
     const buckets = receipts.reduce<Record<string, number>>((acc, tx) => {
         const dateKey = new Date(tx.timestamp).toISOString().slice(0, 10);
-        acc[dateKey] = (acc[dateKey] ?? 0) + tx.amount;
+        acc[dateKey] = (acc[dateKey] ?? 0) + project(tx);
         return acc;
     }, {});
 
@@ -99,10 +113,13 @@ export function buildTimeSeries(receipts: Receipt[]): TimeSeriesPoint[] {
         .map(([date, total]) => ({ date, total }));
 }
 
-export function buildCategorySlices(receipts: Receipt[]): CategorySlice[] {
+export function buildCategorySlices(
+    receipts: Receipt[],
+    project: AmountProjector = defaultProjector,
+): CategorySlice[] {
     const totals = receipts.reduce<Record<string, number>>((acc, tx) => {
         tx.categories?.forEach((cat) => {
-            acc[cat] = (acc[cat] ?? 0) + tx.amount;
+            acc[cat] = (acc[cat] ?? 0) + project(tx);
         });
         return acc;
     }, {});
@@ -117,16 +134,23 @@ export function buildCategorySlices(receipts: Receipt[]): CategorySlice[] {
 }
 
 export function detectAnomalies(receipts: Receipt[]): Anomaly[] {
+    return detectAnomaliesWithProjector(receipts, defaultProjector);
+}
+
+export function detectAnomaliesWithProjector(
+    receipts: Receipt[],
+    project: AmountProjector,
+): Anomaly[] {
     const mean =
-        receipts.reduce((acc, tx) => acc + tx.amount, 0) /
+        receipts.reduce((acc, tx) => acc + project(tx), 0) /
         Math.max(1, receipts.length);
     const threshold = mean * 1.5;
     return receipts
-        .filter((tx) => tx.amount > threshold)
+        .filter((tx) => project(tx) > threshold)
         .map((tx) => ({
             id: `anom-${tx.id}`,
             merchant: tx.merchant,
-            delta: tx.amount - mean,
-            description: `${tx.merchant} spend is ${((tx.amount / mean - 1) * 100) | 0}% above average`,
+            delta: project(tx) - mean,
+            description: `${tx.merchant} spend is ${((project(tx) / mean - 1) * 100) | 0}% above average`,
         }));
 }

@@ -1,3 +1,4 @@
+import { useCurrency } from "@/context/currency-context";
 import type {
     Anomaly,
     CategorySlice,
@@ -11,11 +12,6 @@ type InsightsGridProps = {
     categories: CategorySlice[];
     anomalies: Anomaly[];
 };
-
-const currency = new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-});
 
 function buildPath(points: TimeSeriesPoint[]) {
     if (!points.length) return "";
@@ -52,13 +48,14 @@ export function InsightsGrid({
     categories,
     anomalies,
 }: InsightsGridProps) {
+    const { format, currency } = useCurrency();
     return (
         <div className="grid grid-cols-12 gap-6">
             <section className="col-span-12 grid grid-cols-4 gap-4">
                 {[
                     {
                         label: "Total spend",
-                        value: currency.format(summary.totalSpend),
+                        value: format(summary.totalSpend, currency),
                         badge: "+14% vs last cycle",
                     },
                     {
@@ -68,14 +65,14 @@ export function InsightsGrid({
                     },
                     {
                         label: "Avg ticket",
-                        value: currency.format(summary.avgTicket),
+                        value: format(summary.avgTicket, currency),
                         badge: "healthy variance",
                     },
                     {
                         label: "Top merchant",
                         value: summary.topMerchant?.name ?? "—",
                         badge: summary.topMerchant
-                            ? currency.format(summary.topMerchant.total)
+                            ? format(summary.topMerchant.total, currency)
                             : "",
                     },
                 ].map((metric) => (

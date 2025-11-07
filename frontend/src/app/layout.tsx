@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { CurrencyProvider } from "@/context/currency-context";
 import { SessionProvider } from "@/context/session-context";
 import "./globals.css";
 
@@ -29,7 +30,9 @@ export default function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
-                <SessionProvider>{children}</SessionProvider>
+                <SessionProvider>
+                    <CurrencyProvider>{children}</CurrencyProvider>
+                </SessionProvider>
             </body>
         </html>
     );

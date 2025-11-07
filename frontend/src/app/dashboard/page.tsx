@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "@/ui/layout/AppShell";
 import { SystemFeedback } from "@/ui/system/SystemFeedback";
@@ -12,8 +12,16 @@ import { ReceiptFilters } from "@/features/dashboard/components/ReceiptFilters";
 import { ReceiptsTable } from "@/features/dashboard/components/ReceiptsTable";
 import { SettingsPanel } from "@/features/dashboard/components/SettingsPanel";
 import { SyncPanel } from "@/features/dashboard/components/SyncPanel";
+import { useCurrency } from "@/context/currency-context";
 import { useSessionContext } from "@/context/session-context";
 import { useReceipts } from "@/hooks/useReceipts";
+import {
+    buildCategorySlices,
+    buildSummary,
+    buildTimeSeriesWithProjector,
+    detectAnomaliesWithProjector,
+} from "@/lib/analytics";
+import type { CurrencyCode } from "@/lib/config";
 import {
     defaultFilters,
     sampleActivity,
@@ -30,6 +38,7 @@ type InlineNotice = {
 
 export default function DashboardPage() {
     const session = useSessionContext();
+    const { convert, supported } = useCurrency();
     const [filters, setFilters] = useState(defaultFilters);
     const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(
         null,
@@ -48,17 +57,42 @@ export default function DashboardPage() {
         }
     }, [session.email]);
 
-    const {
-        filtered,
-        summary,
-        series,
-        categories,
-        anomalies,
-        loading,
-        error,
-        refresh,
-        updateCategories,
-    } = useReceipts(filters);
+    const { filtered, loading, error, refresh, updateCategories } =
+        useReceipts(filters);
+
+    const supportedSet = useMemo(
+        () => new Set<CurrencyCode>(supported),
+        [supported],
+    );
+
+    const amountProjector = useCallback(
+        (receipt: Receipt) => {
+            const baseCurrency = supportedSet.has(
+                receipt.currency as CurrencyCode,
+            )
+                ? (receipt.currency as CurrencyCode)
+                : "USD";
+            return convert(receipt.amount, baseCurrency);
+        },
+        [convert, supportedSet],
+    );
+
+    const summary = useMemo(
+        () => buildSummary(filtered, amountProjector),
+        [filtered, amountProjector],
+    );
+    const series = useMemo(
+        () => buildTimeSeriesWithProjector(filtered, amountProjector),
+        [filtered, amountProjector],
+    );
+    const categories = useMemo(
+        () => buildCategorySlices(filtered, amountProjector),
+        [filtered, amountProjector],
+    );
+    const anomalies = useMemo(
+        () => detectAnomaliesWithProjector(filtered, amountProjector),
+        [filtered, amountProjector],
+    );
 
     const availableCategories = useMemo(() => {
         const unique = new Set<string>();

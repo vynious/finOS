@@ -1,5 +1,7 @@
 "use client";
 
+import { useCurrency } from "@/context/currency-context";
+import { currencyRates, type CurrencyCode } from "@/lib/config";
 import type { Receipt } from "@/types";
 
 type ReceiptsTableProps = {
@@ -15,6 +17,8 @@ export function ReceiptsTable({
     selectedId,
     onSelect,
 }: ReceiptsTableProps) {
+    const { convert, format } = useCurrency();
+
     if (loading) {
         return (
             <div className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-10 text-center text-sm text-slate-500">
@@ -75,10 +79,22 @@ export function ReceiptsTable({
                                     </div>
                                 </td>
                                 <td className="px-5 py-4 text-right font-semibold text-white">
-                                    {new Intl.NumberFormat(undefined, {
-                                        style: "currency",
-                                        currency: receipt.currency,
-                                    }).format(receipt.amount)}
+                                    {format(
+                                        convert(
+                                            receipt.amount,
+                                            currencyRates[
+                                                receipt.currency as CurrencyCode
+                                            ]
+                                                ? (receipt.currency as CurrencyCode)
+                                                : "USD",
+                                        ),
+                                    )}
+                                    <span className="ml-2 text-xs text-slate-500">
+                                        {new Intl.NumberFormat(undefined, {
+                                            style: "currency",
+                                            currency: receipt.currency ?? "USD",
+                                        }).format(receipt.amount)}
+                                    </span>
                                 </td>
                                 <td className="px-5 py-4 text-slate-400">
                                     {new Date(receipt.timestamp).toLocaleString(

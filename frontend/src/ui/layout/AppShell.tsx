@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrency } from "@/context/currency-context";
 import type { DateRange } from "@/types";
 import { useMemo } from "react";
 
@@ -52,6 +53,7 @@ export function AppShell({
     onSectionChange,
     children,
 }: AppShellProps) {
+    const { currency, setCurrency, supported } = useCurrency();
     const initials = useMemo(
         () =>
             email
@@ -135,23 +137,44 @@ export function AppShell({
                                 <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
                                     {email}
                                 </span>
-                                <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 p-1 text-sm text-slate-400">
-                                    {rangeOptions.map((opt) => (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={() =>
-                                                onRangeChange(opt.value)
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 p-1 text-sm text-slate-400">
+                                        {rangeOptions.map((opt) => (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                onClick={() =>
+                                                    onRangeChange(opt.value)
+                                                }
+                                                className={`rounded-full px-3 py-1 transition ${
+                                                    opt.value === dateRange
+                                                        ? "bg-emerald-400/20 text-white"
+                                                        : "hover:bg-slate-800"
+                                                }`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <label className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs uppercase tracking-widest text-slate-400">
+                                        Currency
+                                        <select
+                                            value={currency}
+                                            onChange={(event) =>
+                                                setCurrency(
+                                                    event.target
+                                                        .value as (typeof supported)[number],
+                                                )
                                             }
-                                            className={`rounded-full px-3 py-1 transition ${
-                                                opt.value === dateRange
-                                                    ? "bg-emerald-400/20 text-white"
-                                                    : "hover:bg-slate-800"
-                                            }`}
+                                            className="bg-transparent text-white outline-none"
                                         >
-                                            {opt.label}
-                                        </button>
-                                    ))}
+                                            {supported.map((code) => (
+                                                <option key={code} value={code}>
+                                                    {code}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
                                 </div>
                                 <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5">
                                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400/20 text-sm text-emerald-300">

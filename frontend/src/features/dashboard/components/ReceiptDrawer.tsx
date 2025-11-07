@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useCurrency } from "@/context/currency-context";
+import { currencyRates, type CurrencyCode } from "@/lib/config";
 import type { Receipt } from "@/types";
 
 type ReceiptDrawerProps = {
@@ -18,6 +20,7 @@ export function ReceiptDrawer({
     onClose,
     onUpdateCategories,
 }: ReceiptDrawerProps) {
+    const { convert, format } = useCurrency();
     const [localCategories, setLocalCategories] = useState<string[]>([]);
     const [newCategory, setNewCategory] = useState("");
     const [saving, setSaving] = useState(false);
@@ -38,6 +41,14 @@ export function ReceiptDrawer({
     }, [receipt, localCategories]);
 
     if (!receipt) return null;
+    const baseCurrency = currencyRates[receipt.currency as CurrencyCode]
+        ? (receipt.currency as CurrencyCode)
+        : "USD";
+    const convertedAmount = format(convert(receipt.amount, baseCurrency));
+    const originalAmount = new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: receipt.currency ?? "USD",
+    }).format(receipt.amount);
 
     const addCategory = () => {
         const trimmed = newCategory.trim();
@@ -95,12 +106,14 @@ export function ReceiptDrawer({
                     {receipt.merchant}
                 </h3>
                 <p className="text-sm text-slate-400">{receipt.issuer}</p>
-                <p className="mt-4 text-3xl font-semibold text-white">
-                    {new Intl.NumberFormat(undefined, {
-                        style: "currency",
-                        currency: receipt.currency,
-                    }).format(receipt.amount)}
-                </p>
+                <div className="mt-4 space-y-1 text-slate-300">
+                    <p className="text-3xl font-semibold text-white">
+                        {convertedAmount}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                        {originalAmount} {receipt.currency ?? "USD"}
+                    </p>
+                </div>
                 <div className="mt-6 space-y-5 text-sm">
                     <div>
                         <p className="text-xs uppercase tracking-widest text-slate-500">

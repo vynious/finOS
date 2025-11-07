@@ -15,3 +15,24 @@ pub struct User {
 pub struct Secret {
     pub password: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PublicUser {
+    pub email: String,
+    pub name: String,
+    pub active: bool,
+    pub last_synced: Option<i64>,
+    pub google_sub: Option<String>,
+}
+
+impl From<User> for PublicUser {
+    fn from(value: User) -> Self {
+        Self {
+            email: value.email,
+            name: value.name,
+            active: value.active,
+            last_synced: value.last_synced,
+            google_sub: value.google_sub,
+        }
+    }
+}

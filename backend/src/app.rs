@@ -9,14 +9,20 @@ use crate::{
         email::service::EmailService,
         ingestor::service::IngestorService,
         receipt::{routes::routes as receipt_routes, service::ReceiptService},
-        user::service::UserService,
+        user::{routes::routes as user_routes, service::UserService},
     },
 };
 use anyhow::{Context, Result};
-use axum::{routing::get, Router};
+use axum::{
+    http::{self, HeaderValue},
+    routing::get,
+    Router,
+};
 use backend::config::AppConfig;
+use reqwest::Method;
 use std::{env, sync::Arc, time::Duration};
 use tokio::time::interval;
+use tower_http::cors::{AllowHeaders, AllowMethods, Any, CorsLayer};
 use tracing::error;
 
 pub async fn build_app(config: AppConfig) -> Result<AppState> {
@@ -53,10 +59,33 @@ pub async fn build_app(config: AppConfig) -> Result<AppState> {
 }
 
 pub fn mount_routes(state: Arc<AppState>) -> Router {
+    let base_state = state.clone();
+    let auth_state = state.clone();
+    let receipt_state = state.clone();
+    let user_state = state;
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::OPTIONS])
+        .allow_origin(
+            std::env::var("FRONTEND_APP_URL")
+                .unwrap_or_else(|_| "http://localhost:3000".into())
+                .parse::<HeaderValue>()
+                .expect("valid FRONTEND_APP_URL"),
+        )
+        .allow_headers(AllowHeaders::list([
+            http::header::ACCEPT,
+            http::header::CONTENT_TYPE,
+            http::header::AUTHORIZATION,
+        ]))
+        .allow_credentials(true)
+        .max_age(Duration::from_secs(60 * 60));
+
     Router::new()
         .route("/", get(|| async { "Hello World" }))
-        .merge(auth_routes(state.clone()))
-        .merge(receipt_routes(state))
+        .with_state(base_state)
+        .merge(auth_routes(auth_state))
+        .merge(receipt_routes(receipt_state))
+        .merge(user_routes(user_state))
+        .layer(cors)
 }
 
 pub fn start_sync_job(duration: u64, state: Arc<AppState>) {

@@ -2,6 +2,7 @@ import { useCurrency } from "@/context/currency-context";
 import type {
     Anomaly,
     CategorySlice,
+    DateRange,
     InsightSummary,
     TimeSeriesPoint,
 } from "@/types";
@@ -11,6 +12,16 @@ type InsightsGridProps = {
     series: TimeSeriesPoint[];
     categories: CategorySlice[];
     anomalies: Anomaly[];
+    email?: string | null;
+    range: DateRange;
+};
+
+const rangeLabels: Record<DateRange, string> = {
+    "7d": "last 7 days",
+    "30d": "last 30 days",
+    "90d": "last 90 days",
+    "365d": "last year",
+    custom: "custom range",
 };
 
 function buildPath(points: TimeSeriesPoint[]) {
@@ -47,8 +58,11 @@ export function InsightsGrid({
     series,
     categories,
     anomalies,
+    email,
+    range,
 }: InsightsGridProps) {
     const { format, currency } = useCurrency();
+    const rangeLabel = rangeLabels[range] ?? range;
     return (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             <section className="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -56,24 +70,29 @@ export function InsightsGrid({
                     {
                         label: "Total spend",
                         value: format(summary.totalSpend, currency),
-                        badge: "+14% vs last cycle",
+                        badge: email
+                            ? `Account: ${email}`
+                            : "Connect Gmail to ingest",
                     },
                     {
                         label: "Transactions",
                         value: summary.txCount.toString(),
-                        badge: "12 new receipts",
+                        badge:
+                            summary.txCount === 1
+                                ? "1 receipt this period"
+                                : `${summary.txCount} receipts ${rangeLabel}`,
                     },
                     {
                         label: "Avg ticket",
                         value: format(summary.avgTicket, currency),
-                        badge: "healthy variance",
+                        badge: `Average over ${rangeLabel}`,
                     },
                     {
                         label: "Top merchant",
                         value: summary.topMerchant?.name ?? "—",
                         badge: summary.topMerchant
                             ? format(summary.topMerchant.total, currency)
-                            : "",
+                            : "No spend recorded",
                     },
                 ].map((metric) => (
                     <div

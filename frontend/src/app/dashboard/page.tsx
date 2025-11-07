@@ -5,7 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/ui/layout/AppShell";
 import { SystemFeedback } from "@/ui/system/SystemFeedback";
 
-import { ActivityLog } from "@/features/dashboard/components/ActivityLog";
+import {
+    ActivityLog,
+    type ActivityEvent,
+} from "@/features/dashboard/components/ActivityLog";
 import { InsightsGrid } from "@/features/dashboard/components/InsightsGrid";
 import { ReceiptDrawer } from "@/features/dashboard/components/ReceiptDrawer";
 import { ReceiptFilters } from "@/features/dashboard/components/ReceiptFilters";
@@ -22,12 +25,11 @@ import {
     detectAnomaliesWithProjector,
 } from "@/lib/analytics";
 import type { CurrencyCode } from "@/lib/config";
-import {
-    defaultFilters,
-    sampleActivity,
-    sampleSyncStatus,
-} from "@/lib/sampleData";
-import type { Receipt, SyncStatus } from "@/types";
+import type {
+    Receipt,
+    ReceiptFilters as ReceiptFiltersType,
+    SyncStatus,
+} from "@/types";
 
 type InlineNotice = {
     id: string;
@@ -36,28 +38,80 @@ type InlineNotice = {
     tone?: "info" | "success" | "warning" | "danger";
 };
 
+const DEFAULT_RANGE: ReceiptFiltersType["range"] = "30d";
+
+const formatReceiptAmount = (receipt: Receipt) =>
+    new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: receipt.currency ?? "USD",
+    }).format(receipt.amount);
+
+function buildActivityEntries(
+    receipts: Receipt[],
+    email?: string | null,
+): ActivityEvent[] {
+    if (!receipts.length) {
+        return email
+            ? [
+                  {
+                      id: "activity-placeholder",
+                      title: "Awaiting Gmail sync",
+                      detail: `No receipts ingested yet for ${email}.`,
+                      timestamp: new Date().toISOString(),
+                  },
+              ]
+            : [];
+    }
+
+    const sorted = [...receipts].sort(
+        (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+
+    return sorted.slice(0, 6).map((receipt) => ({
+        id: receipt.id,
+        title: `Processed ${receipt.merchant}`,
+        detail: `${receipt.owner} via ${receipt.issuer ?? "Gmail"} · ${formatReceiptAmount(receipt)}`,
+        timestamp: receipt.timestamp,
+    }));
+}
+
+const buildSyncStatus = (email?: string | null): SyncStatus => ({
+    state: "idle",
+    lastSynced: undefined,
+    message: email
+        ? `Waiting for Gmail ingest for ${email}`
+        : "Connect Gmail to start ingesting receipts.",
+});
+
 export default function DashboardPage() {
     const session = useSessionContext();
     const { convert, supported } = useCurrency();
-    const [filters, setFilters] = useState(defaultFilters);
+    const [filters, setFilters] = useState<ReceiptFiltersType>(() => ({
+        email: session.email ?? "",
+        range: DEFAULT_RANGE,
+    }));
     const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(
         null,
     );
     const [activeSection, setActiveSection] = useState<
         "transactions" | "settings"
     >("transactions");
-    const [syncStatus, setSyncStatus] = useState<SyncStatus>(sampleSyncStatus);
+    const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
+        buildSyncStatus(session.email),
+    );
     const [inlineNotice, setInlineNotice] = useState<
         InlineNotice | undefined
     >();
 
     useEffect(() => {
-        if (session.email) {
-            setFilters((prev) => ({ ...prev, email: session.email! }));
-        }
+        setFilters((prev) => ({
+            ...prev,
+            email: session.email ?? "",
+        }));
     }, [session.email]);
 
-    const { filtered, loading, error, refresh, updateCategories } =
+    const { receipts, filtered, loading, error, refresh, updateCategories } =
         useReceipts(filters);
 
     const supportedSet = useMemo(
@@ -102,27 +156,65 @@ export default function DashboardPage() {
         return Array.from(unique);
     }, [filtered]);
 
+    const activityEntries = useMemo(
+        () => buildActivityEntries(receipts, session.email ?? filters.email),
+        [receipts, session.email, filters.email],
+    );
+
+    useEffect(() => {
+        if (!session.email) {
+            setSyncStatus(buildSyncStatus(undefined));
+            return;
+        }
+
+        if (loading) {
+            setSyncStatus((prev) => ({
+                ...prev,
+                state: "syncing",
+                message: `Syncing Gmail for ${session.email}…`,
+            }));
+            return;
+        }
+
+        if (error) {
+            setSyncStatus((prev) => ({
+                ...prev,
+                state: "error",
+                message: `Couldn't load receipts for ${session.email}: ${error}`,
+            }));
+            return;
+        }
+
+        if (receipts.length) {
+            setSyncStatus({
+                state: "success",
+                lastSynced: new Date().toISOString(),
+                message: `Loaded ${receipts.length} receipts for ${session.email}`,
+            });
+        } else {
+            setSyncStatus({
+                state: "idle",
+                lastSynced: undefined,
+                message: `No receipts found for ${session.email} yet.`,
+            });
+        }
+    }, [session.email, loading, error, receipts]);
+
     const handleRetry = async () => {
         setSyncStatus((prev) => ({
             ...prev,
             state: "syncing",
-            message: "Manual sync triggered",
+            message: session.email
+                ? `Syncing Gmail for ${session.email}…`
+                : "Syncing Gmail…",
         }));
-        const result = await refresh();
-        setSyncStatus({
-            state: result === false ? "error" : "success",
-            lastSynced: new Date().toISOString(),
-            message:
-                result === false
-                    ? "Sync failed. Check OAuth tokens."
-                    : "Manual sync completed via Gmail ingest.",
-        });
+        await refresh();
     };
 
     const resetFilters = () =>
         setFilters((prev) => ({
-            ...defaultFilters,
-            email: prev.email,
+            email: session.email ?? "",
+            range: DEFAULT_RANGE,
         }));
 
     const handleCategoryUpdate = async (
@@ -214,7 +306,7 @@ export default function DashboardPage() {
                             <SystemFeedback
                                 notice={{
                                     id: "api-error",
-                                    title: "Live API fallback",
+                                    title: "Unable to load receipts",
                                     detail: error,
                                     tone: "warning",
                                 }}
@@ -225,6 +317,8 @@ export default function DashboardPage() {
                             series={series}
                             categories={categories}
                             anomalies={anomalies}
+                            email={session.email}
+                            range={filters.range}
                         />
                         <SyncPanel status={syncStatus} onRetry={handleRetry} />
                         <ReceiptFilters
@@ -243,7 +337,7 @@ export default function DashboardPage() {
                 ) : (
                     <div className="space-y-6">
                         <SettingsPanel email={session.email} />
-                        <ActivityLog entries={sampleActivity} />
+                        <ActivityLog entries={activityEntries} />
                     </div>
                 )}
             </AppShell>

@@ -111,6 +111,7 @@ export function ReceiptDrawer({
                     {receipt.merchant}
                 </h3>
                 <p className="text-sm text-slate-400">{receipt.issuer}</p>
+                <p className="text-xs text-slate-500">{receipt.owner}</p>
                 <div className="mt-4 space-y-1 text-slate-300">
                     <p className="text-3xl font-semibold text-white">
                         {convertedAmount}

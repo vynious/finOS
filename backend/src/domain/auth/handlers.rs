@@ -13,7 +13,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
-use crate::{common::app_state::AppState, domain::auth::models::TokenRecord};
+use crate::{
+    common::app_state::AppState,
+    domain::auth::models::{Claims, TokenRecord},
+};
 
 #[derive(Deserialize)]
 pub struct OAuthCb {
@@ -128,7 +131,7 @@ pub async fn google_oauth_callback(
 
         let session_cookie = Cookie::build(("session", jwt))
             .http_only(true)
-            .secure(true) // set true in HTTPS; false only for local http dev
+            .secure(false) // set true in HTTPS; false only for local http dev
             .same_site(SameSite::Lax) // or Strict; use None for cross-site iframes + Secure
             .path("/")
             .max_age(Duration::minutes(30))
@@ -158,31 +161,55 @@ pub async fn google_oauth_callback(
 
 pub async fn authorization_middleware(
     State(app): State<Arc<AppState>>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Result<Response<Body>, (StatusCode, String)> {
-    // parse out the authorization token
-    let token = req
-        .headers()
+    // parse out the authorization token (Bearer header takes precedence, fall back to session cookie)
+    let token = extract_bearer_token(&req)
+        .or_else(|| extract_session_cookie(&req))
+        .ok_or((
+            StatusCode::UNAUTHORIZED,
+            "Missing Authorization header or session cookie".to_string(),
+        ))?;
+
+    let claims = app
+        .auth_service
+        .decode_and_validate_expiry(&token)
+        .and_then(|c| app.auth_service.validate_roles(c, "user"))
+        .map_err(|e| (StatusCode::UNAUTHORIZED, format!("Invalid token: {e}")))?;
+
+    req.extensions_mut().insert(claims);
+
+    Ok(next.run(req).await)
+}
+
+fn extract_bearer_token(req: &Request) -> Option<String> {
+    req.headers()
         .get(http::header::AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
         .and_then(|v| {
             let mut it = v.split_whitespace();
             match (it.next(), it.next()) {
-                (Some(scheme), Some(tok)) if scheme.eq_ignore_ascii_case("bearer") => Some(tok),
+                (Some(scheme), Some(tok)) if scheme.eq_ignore_ascii_case("bearer") => {
+                    Some(tok.to_string())
+                }
                 _ => None,
             }
         })
-        .ok_or((
-            StatusCode::UNAUTHORIZED,
-            "Missing or malformed Authorization header".to_string(),
-        ))?;
+}
 
-    let _ = app
-        .auth_service
-        .decode_and_validate_expiry(token)
-        .and_then(|c| app.auth_service.validate_roles(c, "user"))
-        .map_err(|e| (StatusCode::UNAUTHORIZED, format!("Invalid token: {e}")))?;
-
-    Ok(next.run(req).await)
+fn extract_session_cookie(req: &Request) -> Option<String> {
+    req.headers()
+        .get(http::header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|cookie_header| {
+            cookie_header.split(';').find_map(|pair| {
+                let trimmed = pair.trim();
+                let mut parts = trimmed.splitn(2, '=');
+                match (parts.next(), parts.next()) {
+                    (Some(name), Some(val)) if name == "session" => Some(val.to_string()),
+                    _ => None,
+                }
+            })
+        })
 }

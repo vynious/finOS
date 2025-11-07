@@ -4,11 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { applyFilters } from "@/lib/analytics";
 import { config } from "@/lib/config";
-import { sampleReceipts } from "@/lib/sampleData";
-import type { Receipt, ReceiptFilters } from "@/types";
+import { mapBackendReceipts } from "@/lib/receipts";
+import type {
+    ApiResponse,
+    BackendReceiptList,
+    Receipt,
+    ReceiptFilters,
+} from "@/types";
 
 export function useReceipts(filters: ReceiptFilters) {
-    const [receipts, setReceipts] = useState<Receipt[]>(sampleReceipts);
+    const [receipts, setReceipts] = useState<Receipt[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -16,33 +21,48 @@ export function useReceipts(filters: ReceiptFilters) {
         async (signal?: AbortSignal) => {
             let success = false;
             try {
-                setLoading(true);
                 setError(null);
-                const response = await fetch(
-                    `${config.apiBaseUrl}/receipts/${filters.email}`,
-                    {
-                        credentials: "include",
-                        signal,
-                    },
-                );
+                const email = filters.email?.trim();
+                if (!email) {
+                    setReceipts([]);
+                    return false;
+                }
+                setLoading(true);
+                const endpoint = `${config.apiBaseUrl}/receipts/${encodeURIComponent(email)}`;
+                const response = await fetch(endpoint, {
+                    credentials: "include",
+                    signal,
+                });
+                if (response.status === 401 || response.status === 403) {
+                    setReceipts([]);
+                    setError(null);
+                    return false;
+                }
                 if (!response.ok) {
                     throw new Error(
                         `Failed to load receipts (${response.status})`,
                     );
                 }
-                const payload = await response.json();
-                const items: Receipt[] =
-                    payload?.data?.transactions ?? payload?.transactions ?? [];
-                if (items.length) {
-                    setReceipts(items);
+                const payload: ApiResponse<BackendReceiptList> =
+                    await response.json();
+                if (!payload.success) {
+                    throw new Error(
+                        payload.error ??
+                            "Backend declined the receipts request.",
+                    );
                 }
-                success = items.length > 0;
+                const normalized = mapBackendReceipts(
+                    payload.data?.transactions ?? [],
+                    email,
+                );
+                setReceipts(normalized);
+                success = true;
                 return success;
             } catch (err) {
                 if ((err as Error)?.name === "AbortError") return false;
-                console.warn("Falling back to sample data", err);
+                console.warn("Failed to load receipts", err);
                 setError((err as Error).message);
-                setReceipts(sampleReceipts);
+                setReceipts([]);
                 return false;
             } finally {
                 setLoading(false);

@@ -68,6 +68,9 @@ export function ReceiptsTable({
                                 <p className="text-base font-semibold text-white">
                                     {receipt.merchant}
                                 </p>
+                                <p className="text-xs text-slate-500">
+                                    {receipt.owner}
+                                </p>
                                 <p className="text-xs text-slate-400">
                                     {receipt.issuer}
                                 </p>
@@ -105,6 +108,7 @@ export function ReceiptsTable({
                     <thead className="bg-slate-950/80 text-xs uppercase tracking-wide text-slate-500">
                         <tr>
                             <th className="px-5 py-3">Merchant</th>
+                            <th className="px-5 py-3">Owner</th>
                             <th className="px-5 py-3">Issuer</th>
                             <th className="px-5 py-3">Categories</th>
                             <th className="px-5 py-3 text-right">Amount</th>
@@ -126,6 +130,9 @@ export function ReceiptsTable({
                                 >
                                     <td className="px-5 py-4 font-semibold text-white">
                                         {receipt.merchant}
+                                    </td>
+                                    <td className="px-5 py-4 text-slate-400">
+                                        {receipt.owner}
                                     </td>
                                     <td className="px-5 py-4 text-slate-400">
                                         {receipt.issuer}

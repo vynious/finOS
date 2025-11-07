@@ -1,4 +1,4 @@
-type Activity = {
+export type ActivityEvent = {
     id: string;
     title: string;
     detail: string;
@@ -6,7 +6,7 @@ type Activity = {
 };
 
 type ActivityLogProps = {
-    entries: Activity[];
+    entries: ActivityEvent[];
 };
 
 export function ActivityLog({ entries }: ActivityLogProps) {
@@ -25,33 +25,40 @@ export function ActivityLog({ entries }: ActivityLogProps) {
                     {entries.length} events
                 </span>
             </header>
-            <ol className="space-y-4">
-                {entries.map((event, idx) => (
-                    <li key={event.id} className="relative pl-5">
-                        {idx !== entries.length - 1 && (
-                            <span className="absolute left-[8px] top-4 h-full w-px bg-slate-800" />
-                        )}
-                        <span className="absolute left-0 top-1 h-2.5 w-2.5 rounded-full bg-emerald-400/80 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-                        <div className="flex flex-col gap-1">
-                            <p className="text-sm font-semibold text-white">
-                                {event.title}
-                            </p>
-                            <p className="text-slate-400">{event.detail}</p>
-                            <p className="text-xs text-slate-500">
-                                {new Date(event.timestamp).toLocaleString(
-                                    undefined,
-                                    {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        month: "short",
-                                        day: "numeric",
-                                    },
-                                )}
-                            </p>
-                        </div>
-                    </li>
-                ))}
-            </ol>
+            {entries.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-800/70 bg-slate-950/50 p-4 text-center text-xs text-slate-500">
+                    No ingest activity yet. Connect Gmail and run a sync to
+                    populate this timeline.
+                </div>
+            ) : (
+                <ol className="space-y-4">
+                    {entries.map((event, idx) => (
+                        <li key={event.id} className="relative pl-5">
+                            {idx !== entries.length - 1 && (
+                                <span className="absolute left-[8px] top-4 h-full w-px bg-slate-800" />
+                            )}
+                            <span className="absolute left-0 top-1 h-2.5 w-2.5 rounded-full bg-emerald-400/80 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                            <div className="flex flex-col gap-1">
+                                <p className="text-sm font-semibold text-white">
+                                    {event.title}
+                                </p>
+                                <p className="text-slate-400">{event.detail}</p>
+                                <p className="text-xs text-slate-500">
+                                    {new Date(event.timestamp).toLocaleString(
+                                        undefined,
+                                        {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            month: "short",
+                                            day: "numeric",
+                                        },
+                                    )}
+                                </p>
+                            </div>
+                        </li>
+                    ))}
+                </ol>
+            )}
         </section>
     );
 }

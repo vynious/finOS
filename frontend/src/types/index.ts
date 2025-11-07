@@ -1,3 +1,32 @@
+export type ApiResponse<T> = {
+    success: boolean;
+    data?: T;
+    error?: string;
+};
+
+export type PublicUser = {
+    email: string;
+    name: string;
+    active: boolean;
+    last_synced?: number | null;
+    google_sub?: string | null;
+};
+
+export type BackendReceipt = {
+    msg_id?: string | null;
+    owner?: string | null;
+    issuer?: string | null;
+    merchant?: string | null;
+    amount?: number | null;
+    currency?: string | null;
+    categories?: (string | null)[] | null;
+    timestamp?: number | null;
+};
+
+export type BackendReceiptList = {
+    transactions: BackendReceipt[];
+};
+
 export type Receipt = {
     id: string;
     msgId?: string;

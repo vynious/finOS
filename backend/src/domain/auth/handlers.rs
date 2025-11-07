@@ -103,12 +103,7 @@ pub async fn google_oauth_callback(
 
         let user = app
             .user_service
-            .ensure_google_user(
-                &profile.email,
-                &profile.sub,
-                profile.name.as_deref(),
-                &access,
-            )
+            .ensure_google_user(&profile.email, &profile.sub, profile.name.as_deref())
             .await?;
 
         let token_record = TokenRecord {

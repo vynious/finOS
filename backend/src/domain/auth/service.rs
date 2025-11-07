@@ -15,6 +15,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use time::{Duration as TimeDuration, OffsetDateTime};
 use tokio::fs;
+use tracing::error;
 
 #[derive(Deserialize)]
 pub struct ApplicationSecret {
@@ -59,7 +60,8 @@ impl AuthService {
 
         let jwt_encoding = EncodingKey::from_secret("secret".as_ref());
         let jwt_decoding = DecodingKey::from_secret("secret".as_ref());
-        let jwt_validation = Validation::default();
+        let mut jwt_validation = Validation::default();
+        jwt_validation.set_audience(&["finOS"]);
 
         Ok(Self {
             token_store,
@@ -188,7 +190,11 @@ impl AuthService {
     }
 
     pub fn decode_and_validate_expiry(&self, jwt: &str) -> Result<Claims> {
-        let claims = decode::<Claims>(&jwt, &self.jwt_decoding, &self.jwt_validation)
+        let claims = decode::<Claims>(jwt, &self.jwt_decoding, &self.jwt_validation)
+            .map_err(|err| {
+                eprintln!("{err}");
+                err
+            })
             .context("failed to decode JWT")?
             .claims;
         let now = OffsetDateTime::now_utc().unix_timestamp();

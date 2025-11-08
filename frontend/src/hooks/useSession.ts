@@ -92,7 +92,7 @@ export function useSession() {
     }, [loadProfile]);
 
     const connectGmail = useCallback(() => {
-        window.location.href = `/auth/google/login`;
+        window.location.href = `${config.apiBaseUrl}/auth/google/login`;
     }, []);
 
     const logout = useCallback(() => {

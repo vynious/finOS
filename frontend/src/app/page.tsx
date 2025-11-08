@@ -6,10 +6,53 @@ import { cookies } from "next/headers";
 import { config } from "@/lib/config";
 import type { ApiResponse, PublicUser } from "@/types";
 
-const checkmarks = [
-    "Google OAuth + PKCE with per-user token vault",
-    "24/7 Gmail ingest orchestrator with Ollama parsing",
-    "Receipts persisted to Mongo for analytics-grade querying",
+const heroHighlights = [
+    {
+        title: "Google OAuth + JWT",
+        detail: "PKCE sign-in, token vault in MongoDB, session cookie issued by Axum.",
+    },
+    {
+        title: "Ingestion cadence",
+        detail: "Tokio job queries Gmail every ~60 seconds and skips anything already synced.",
+    },
+    {
+        title: "LLM structuring",
+        detail: "Ollama turns raw receipt HTML into clean merchants, totals, and categories.",
+    },
+];
+
+const pipelineSteps = [
+    {
+        title: "Authenticate fast",
+        detail: "Users complete the Google OAuth flow, we store refresh/access tokens, and issue a JWT session.",
+    },
+    {
+        title: "Pull trusted mail",
+        detail: "IngestorService builds Gmail queries from issuer allow-lists + `last_synced` timestamps.",
+    },
+    {
+        title: "Parse + enrich",
+        detail: "EmailService sanitizes HTML, calls Ollama locally, and normalizes currency + owners.",
+    },
+    {
+        title: "Serve dashboards",
+        detail: "ReceiptService persists transactions, while the Next.js dashboard streams analytics.",
+    },
+];
+
+const dashboardCallouts = [
+    {
+        title: "Spend pulse",
+        detail: "InsightsGrid charts totals, anomalies, and top merchants directly from ingested receipts.",
+    },
+    {
+        title: "Sync health",
+        detail: "SyncPanel mirrors the background job status so teams know when Gmail ingest last succeeded.",
+    },
+    {
+        title: "Receipt workspace",
+        detail: "Drill into receipts, retag categories, and jump back to the Gmail thread in a single drawer.",
+    },
 ];
 
 async function getSession(): Promise<PublicUser | null> {
@@ -57,13 +100,13 @@ export default async function LandingPage() {
                     confirmations, and gives finance teams a dashboard that
                     feels like Ramp + Plaid, without building another data pipe.
                 </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                    <Link
-                        href="/auth/google/login"
+                <div className="flex flex-wrap justify-center gap-4 text-sm sm:text-base">
+                    <a
+                        href={`${config.apiBaseUrl}/auth/google/login`}
                         className="rounded-full bg-emerald-400 px-6 py-3 font-semibold text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-[1.02]"
                     >
                         Connect Gmail
-                    </Link>
+                    </a>
                     <Link
                         href="/dashboard"
                         className="rounded-full border border-slate-700 px-6 py-3 font-semibold text-white hover:border-emerald-300"
@@ -72,14 +115,18 @@ export default async function LandingPage() {
                     </Link>
                 </div>
                 <div className="mx-auto grid gap-4 text-left sm:grid-cols-3">
-                    {checkmarks.map((item) => (
-                        <div
-                            key={item}
-                            className="flex items-start gap-3 rounded-2xl border border-slate-900/60 bg-slate-950/50 p-4 text-sm text-slate-300"
+                    {heroHighlights.map((item) => (
+                        <article
+                            key={item.title}
+                            className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-5 text-left text-sm text-slate-300"
                         >
-                            <span className="text-emerald-300">✓</span>
-                            {item}
-                        </div>
+                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                                {item.title}
+                            </p>
+                            <p className="mt-2 text-base text-white">
+                                {item.detail}
+                            </p>
+                        </article>
                     ))}
                 </div>
             </header>
@@ -101,41 +148,70 @@ export default async function LandingPage() {
                         </p>
                     </div>
                     <div className="space-y-4 rounded-2xl bg-slate-950/70 p-6 text-sm text-slate-300">
-                        <div className="flex items-center justify-between">
-                            <p>Median ingest latency</p>
-                            <p className="text-emerald-300">41 seconds</p>
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                                What you get
+                            </p>
+                            <ul className="mt-3 space-y-2">
+                                <li>
+                                    • PKCE OAuth + JWT session out of the box
+                                </li>
+                                <li>
+                                    • Gmail ingestion tuned per issuer + user
+                                </li>
+                                <li>
+                                    • Receipts normalized for analytics tooling
+                                </li>
+                            </ul>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <p>Receipts parsed / day</p>
-                            <p className="text-emerald-300">1,240+</p>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <p>Finance teams onboarded</p>
-                            <p className="text-emerald-300">97</p>
+                        <div className="rounded-2xl border border-slate-900 bg-slate-950/80 p-4 text-sm text-slate-300">
+                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                                Cron cadence
+                            </p>
+                            <p className="text-emerald-300">
+                                ~60s Tokio heartbeat (configurable)
+                            </p>
+                            <p className="text-xs text-slate-500">
+                                Change the interval inside `start_sync_job`.
+                            </p>
                         </div>
                     </div>
                 </section>
 
+                <section className="rounded-3xl border border-slate-900/60 bg-slate-950/70 p-8">
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                        How FinOS works
+                    </p>
+                    <div className="mt-6 grid gap-6 md:grid-cols-2">
+                        {pipelineSteps.map((step, idx) => (
+                            <article
+                                key={step.title}
+                                className="rounded-2xl border border-slate-900 bg-slate-950/70 p-5"
+                            >
+                                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">
+                                    Step {idx + 1}
+                                </span>
+                                <h3 className="mt-2 text-xl font-semibold text-white">
+                                    {step.title}
+                                </h3>
+                                <p className="mt-2 text-sm text-slate-300">
+                                    {step.detail}
+                                </p>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+
                 <section className="grid gap-8 sm:grid-cols-3">
-                    {[
-                        {
-                            title: "Secure OAuth",
-                            detail: "PKCE + Gmail readonly scope, JWT sessions, zero passwords.",
-                        },
-                        {
-                            title: "LLM-grade parsing",
-                            detail: "Ollama converts HTML receipts into structured merchants, currency, categories.",
-                        },
-                        {
-                            title: "Finance UX",
-                            detail: "Dashboards, anomaly alerts, sync transparency—the whole command center.",
-                        },
-                    ].map((card) => (
+                    {dashboardCallouts.map((card) => (
                         <article
                             key={card.title}
                             className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-6 text-slate-300"
                         >
-                            <h3 className="text-xl font-semibold text-white">
+                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                                Dashboard
+                            </p>
+                            <h3 className="mt-2 text-xl font-semibold text-white">
                                 {card.title}
                             </h3>
                             <p className="mt-2 text-sm">{card.detail}</p>

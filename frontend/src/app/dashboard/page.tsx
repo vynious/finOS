@@ -212,7 +212,7 @@ export default function DashboardPage() {
     };
 
     const resetFilters = () =>
-        setFilters((prev) => ({
+        setFilters(() => ({
             email: session.email ?? "",
             range: DEFAULT_RANGE,
         }));

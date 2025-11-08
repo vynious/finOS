@@ -34,6 +34,20 @@ export function SyncPanel({ status, onRetry }: SyncPanelProps) {
         }
     }, [status.state]);
 
+    const statusCopy: Record<SyncStatus["state"], string> = {
+        idle: "Waiting for the next cron window. Keep this tab open to see new receipts appear.",
+        syncing:
+            "Background workers are querying Gmail and updating Mongo right now.",
+        success:
+            "Latest ingest finished successfully. Refresh to pull the newest receipts.",
+        error: "We hit an issue calling Gmail or Ollama. Check logs and retry once resolved.",
+    };
+
+    const cadence =
+        status.state === "syncing"
+            ? "Running now"
+            : "Every ~60s (configurable)";
+
     return (
         <section className="rounded-2xl border border-slate-900/60 bg-gradient-to-br from-slate-900/80 via-slate-900/40 to-slate-900/90 p-5 shadow-[0_35px_60px_-15px_rgba(15,23,42,0.55)]">
             <div className="mb-4 flex items-center justify-between">
@@ -52,8 +66,7 @@ export function SyncPanel({ status, onRetry }: SyncPanelProps) {
                 </span>
             </div>
             <p className="text-sm text-slate-300">
-                {status.message ??
-                    "Receipts pipeline continuously pulls Gmail messages with trusted issuers and pushes parsed transactions into MongoDB."}
+                {status.message ?? statusCopy[status.state]}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-400">
                 <div>
@@ -68,14 +81,14 @@ export function SyncPanel({ status, onRetry }: SyncPanelProps) {
                     <p className="text-xs uppercase tracking-widest text-slate-500">
                         Next window
                     </p>
-                    <p>~60s cadence</p>
+                    <p>{cadence}</p>
                 </div>
                 <button
                     onClick={onRetry}
                     className="ml-auto rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-emerald-400/60 hover:text-emerald-200"
                     type="button"
                 >
-                    Retry sync
+                    Refresh data
                 </button>
             </div>
         </section>

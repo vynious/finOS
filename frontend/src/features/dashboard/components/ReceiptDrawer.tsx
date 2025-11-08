@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { useCurrency } from "@/context/currency-context";
 import type { CurrencyCode } from "@/lib/config";
@@ -33,6 +33,18 @@ export function ReceiptDrawer({
         setSaving(false);
     }, [receipt]);
 
+    useEffect(() => {
+        if (!receipt) return;
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                onClose();
+            }
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [receipt, onClose]);
+
     const supportedSet = useMemo(
         () => new Set<CurrencyCode>(supported),
         [supported],
@@ -44,6 +56,8 @@ export function ReceiptDrawer({
         if (original.length !== localCategories.length) return true;
         return original.some((cat, idx) => cat !== localCategories[idx]);
     }, [receipt, localCategories]);
+
+    const drawerTitleId = useId();
 
     if (!receipt) return null;
     const baseCurrency = supportedSet.has(receipt.currency as CurrencyCode)
@@ -96,6 +110,9 @@ export function ReceiptDrawer({
             <aside
                 className="h-full w-full max-w-md border-l border-slate-900/60 bg-slate-950/95 px-8 py-8 text-slate-200 shadow-2xl"
                 onClick={(event) => event.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={drawerTitleId}
             >
                 <button
                     onClick={onClose}
@@ -107,7 +124,10 @@ export function ReceiptDrawer({
                 <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
                     Receipt detail
                 </p>
-                <h3 className="text-2xl font-semibold text-white">
+                <h3
+                    id={drawerTitleId}
+                    className="text-2xl font-semibold text-white"
+                >
                     {receipt.merchant}
                 </h3>
                 <p className="text-sm text-slate-400">{receipt.issuer}</p>
@@ -184,16 +204,18 @@ export function ReceiptDrawer({
                         >
                             {saving ? "Saving…" : "Save categories"}
                         </button>
-                        {status === "success" && (
-                            <p className="mt-2 text-xs text-emerald-300">
-                                Categories updated.
-                            </p>
-                        )}
-                        {status === "error" && (
-                            <p className="mt-2 text-xs text-rose-300">
-                                Something went wrong—try again.
-                            </p>
-                        )}
+                        <div aria-live="polite">
+                            {status === "success" && (
+                                <p className="mt-2 text-xs text-emerald-300">
+                                    Categories updated.
+                                </p>
+                            )}
+                            {status === "error" && (
+                                <p className="mt-2 text-xs text-rose-300">
+                                    Something went wrong—try again.
+                                </p>
+                            )}
+                        </div>
                     </div>
                     {receipt.msgId && (
                         <div>

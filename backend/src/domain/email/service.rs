@@ -97,7 +97,7 @@ impl EmailService {
 
         // get authenticated token
         // TODO: REMOVE HARD CODED PROVIDER
-        let token = self.internal_authenticate(email_addr, "gmail").await?;
+        let token = self.internal_authenticate(email_addr, "google").await?;
 
         println!("Getting emails based on queries");
 

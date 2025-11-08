@@ -60,7 +60,7 @@ impl EmailService {
             .await
             .with_context(|| format!("Getting tracked emails for {}", email_addr))?
         {
-            Ok(tracked_emails.email_ids.into_iter().collect())
+            Ok(tracked_emails.emails.into_iter().collect())
         } else {
             Ok(HashSet::new())
         }

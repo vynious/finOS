@@ -89,6 +89,7 @@ impl EmailService {
         queries: Vec<String>,
     ) -> Result<ReceiptList> {
         println!("Processing...");
+        // TODO: can cache this?
         let mut tracked_emails: HashSet<String> = self.get_tracked_emails(email_addr).await?;
         let mut all_receipts: ReceiptList = ReceiptList {
             transactions: Vec::new(),
@@ -195,6 +196,7 @@ impl EmailService {
 
     /// Runs authentication based on the stored OAuth token.
     async fn internal_authenticate(&self, user_id: &str, provider: &str) -> Result<String> {
+        println!("Getting token from store");
         let token = self.token_store.get(user_id, provider).await?;
         match token {
             Some(token) => Ok(token.access_token.clone()),

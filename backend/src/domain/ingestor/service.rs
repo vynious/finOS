@@ -1,4 +1,7 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    thread::current,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::domain::{
     email::service::EmailService,
@@ -59,31 +62,47 @@ impl IngestorService {
         println!("Processing all users");
         let email_service = self.email_service.clone();
         let mut updated_users: Vec<User> = Vec::with_capacity(users.len());
-        let mut handles = Vec::with_capacity(users.len());
+        let mut handles: Vec<(usize, tokio::task::JoinHandle<Result<ReceiptList>>)> =
+            Vec::with_capacity(users.len());
 
-        for user in users.iter() {
-            let now_ms = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis() as i64;
+        let now_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis() as i64;
 
-            let mut user_for_task = user.clone();
-            user_for_task.last_synced = Some(now_ms);
-            updated_users.push(user_for_task.clone());
-
-            let queries = self.build_query(now_ms, &user_for_task);
+        for (idx, user) in users.iter().enumerate() {
+            let queries = self.build_query(now_ms, &user);
             let email_service = email_service.clone();
-            handles.push(tokio::spawn(async move {
+            let user_task_email = user.email.clone();
+            let handle = tokio::spawn(async move {
                 email_service
-                    .query_and_process_untracked(&user_for_task.email, queries)
+                    .query_and_process_untracked(&user_task_email, queries)
                     .await
-            }));
+            });
+            handles.push((idx, handle));
         }
 
-        for handle in handles {
-            if let Ok(Ok(recipts)) = handle.await {
-                all_receipts.transactions.extend(recipts.transactions);
-            }
+        for (idx, handle) in handles {
+            let mut user_for_task = users[idx].clone();
+            match handle.await {
+                Ok(Ok(recipts)) => {
+                    all_receipts.transactions.extend(recipts.transactions);
+                    user_for_task.last_synced = Some(now_ms);
+                    updated_users.push(user_for_task);
+                }
+                Ok(Err(err)) => {
+                    eprintln!(
+                        "Failed to ingest receipts for {}: {:?}",
+                        users[idx].email, err
+                    );
+                }
+                Err(join_err) => {
+                    eprintln!(
+                        "Worker task panicked or was cancelled for {}: {:?}",
+                        users[idx].email, join_err
+                    );
+                }
+            };
         }
         // update user last synced
         self.user_service.update_last_synced(updated_users).await?;
@@ -97,9 +116,9 @@ impl IngestorService {
 
     pub fn get_time_query(current_time: i64, last_synced: i64) -> String {
         let day_ms: i64 = 1000 * 60 * 60 * 24;
-        let diff_ms = last_synced - current_time;
+        let diff_ms = (current_time - last_synced).max(0);
         // round up
-        let diff_days = (diff_ms + day_ms - 1) / (1000 * 60 * 60 * 24);
+        let diff_days = ((diff_ms + day_ms - 1) / day_ms).max(1);
         diff_days.to_string()
     }
 

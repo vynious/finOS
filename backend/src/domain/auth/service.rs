@@ -15,7 +15,6 @@ use serde::Deserialize;
 use std::sync::Arc;
 use time::{Duration as TimeDuration, OffsetDateTime};
 use tokio::fs;
-use tracing::error;
 
 #[derive(Deserialize)]
 pub struct ApplicationSecret {

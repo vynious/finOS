@@ -43,7 +43,7 @@ pub async fn build_app(config: AppConfig) -> Result<AppState> {
     let email_svc = Arc::new(EmailService::new(
         env::var("OLLAMA_MODEL").expect("Unspecified Ollama Model"),
         email_repo,
-        auth_svc,
+        auth_svc.clone(),
     ));
     let ingestor = Arc::new(IngestorService::new(
         email_svc.clone(),

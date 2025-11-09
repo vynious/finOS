@@ -209,4 +209,25 @@ impl AuthService {
         );
         Ok(claims)
     }
+
+    pub async fn get_valid_token(&self, user_id: &str, provider: &str) -> Result<TokenRecord> {
+        let token: Option<TokenRecord> = self.token_store.get(user_id, provider).await?;
+        match token {
+            Some(token) => {
+                // check token status and refresh if needed
+                // and set it back to store
+                if let Some(expiry_time) = token.expires_at {
+                    if expiry_time < OffsetDateTime::now_utc() {
+                        let new_token = self.refresh_access_token(user_id, provider).await?;
+                        let _ = self.store_token(token);
+                        return Ok(new_token);
+                    }
+                }
+                Ok(token)
+            }
+            None => {
+                anyhow::bail!("stored OAuth token not found for {user_id}/{provider}")
+            }
+        }
+    }
 }

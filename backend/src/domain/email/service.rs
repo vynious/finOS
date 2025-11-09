@@ -1,3 +1,5 @@
+use crate::domain::auth::models::TokenRecord;
+use crate::domain::auth::service::AuthService;
 use crate::domain::email::repository::EmailRepo;
 use crate::domain::receipt::models::ReceiptList;
 use crate::domain::{auth::repository::TokenStore, email::models::*};
@@ -11,6 +13,7 @@ use reqwest::Client;
 use scraper::{Html, Node};
 use std::collections::HashSet;
 use std::sync::Arc;
+use time::OffsetDateTime;
 
 fn decode_base64url(s: &str) -> Result<Vec<u8>> {
     let mut s = s.replace('-', "+").replace('_', "/");
@@ -34,20 +37,20 @@ pub struct EmailService {
     client: Client,
     ollama: Ollama,
     db_client: EmailRepo,
-    token_store: Arc<dyn TokenStore>,
+    auth_service: Arc<AuthService>,
     model_name: String,
 }
 
 impl EmailService {
     /// Creates a new `EmailService`, loading `OLLAMA_MODEL` from the environment
     /// and initializing the HTTP and Ollama clients.
-    pub fn new(model_name: String, db_client: EmailRepo, token_store: Arc<dyn TokenStore>) -> Self {
+    pub fn new(model_name: String, db_client: EmailRepo, auth_service: Arc<AuthService>) -> Self {
         EmailService {
             model_name: model_name,
             client: reqwest::Client::new(),
             ollama: Ollama::default(),
             db_client: db_client,
-            token_store: token_store,
+            auth_service,
         }
     }
 
@@ -116,7 +119,6 @@ impl EmailService {
         // add into seen emails
         for email in untracked_emails {
             println!("Checking email: {}", email.id);
-            tracked_emails.insert(email.id.to_string());
             let parsed_email_content = self.fetch_and_parse_email(&token, &email.id).await?;
 
             // check if email subject is something we want to parse
@@ -143,6 +145,7 @@ impl EmailService {
                 receipt.timestamp = Some(parsed_email_content.timestamp.clone().unwrap());
                 all_receipts.transactions.push(receipt);
             }
+            tracked_emails.insert(email.id.to_string());
         }
 
         println!("All Receipts -> {:#?}", all_receipts);
@@ -197,11 +200,8 @@ impl EmailService {
     /// Runs authentication based on the stored OAuth token.
     async fn internal_authenticate(&self, user_id: &str, provider: &str) -> Result<String> {
         println!("Getting token from store");
-        let token = self.token_store.get(user_id, provider).await?;
-        match token {
-            Some(token) => Ok(token.access_token.clone()),
-            None => bail!("stored OAuth token not found for {user_id}/{provider}"),
-        }
+        let token = self.auth_service.get_valid_token(user_id, provider).await?;
+        Ok(token.access_token)
     }
 
     /// Retrieves the email based on the GmailMessage ID and extracts the content

@@ -18,8 +18,8 @@ pub struct MongoTokenStore {
 }
 
 impl MongoTokenStore {
-    pub fn new(client: &Client) -> Self {
-        let db = client.database("fin-os-db");
+    pub fn new(client: &Client, database: &str) -> Self {
+        let db = client.database(database);
         let collection = db.collection("tokens");
         Self { collection }
     }

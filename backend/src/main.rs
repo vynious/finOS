@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
 
     // API Components
     let app = mount_routes(app_state.clone());
-    start_sync_job(60, app_state.clone());
+    let _ = start_sync_job(60 * 60 * 24, app_state.clone()); // 1 day!
 
     // Start the server
     let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();

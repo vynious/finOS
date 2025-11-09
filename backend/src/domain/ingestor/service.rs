@@ -1,7 +1,4 @@
-use std::{
-    thread::current,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::domain::{
     email::service::EmailService,

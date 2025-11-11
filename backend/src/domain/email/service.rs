@@ -15,6 +15,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use time::OffsetDateTime;
 
+// TODO: ??
 fn decode_base64url(s: &str) -> Result<Vec<u8>> {
     let mut s = s.replace('-', "+").replace('_', "/");
     while s.len() % 4 != 0 {
@@ -114,9 +115,14 @@ impl EmailService {
             .collect();
 
         // build regex for filtering unwanted emails without these keywords
+        // TODO: dont need rebuilt each time, use lazy static initialisation
         let re = build_keyword_regex(&["transaction", "spent", "payment"]);
 
         // add into seen emails
+        // TODO: optimise the process by introducing spmc channel (bounded lockfree ring buffer)
+        // we will add a spmc channel the producer will pass in the untracked emails
+        // the consumers (n workers) will pull from the channel and retrieve the detailed
+        // email content and parse it through ollama.
         for email in untracked_emails {
             println!("Checking email: {}", email.id);
             let parsed_email_content = self.fetch_and_parse_email(&token, &email.id).await?;
@@ -266,6 +272,7 @@ impl EmailService {
 
     /// Converts HTML into visible text by traversing the DOM and removing
     /// non-visible nodes and redundant whitespace/newlines.
+    /// TOOD: optimise?
     fn html_to_text(html: &str) -> String {
         let doc = Html::parse_document(html);
 

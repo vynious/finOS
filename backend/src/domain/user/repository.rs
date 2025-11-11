@@ -65,6 +65,9 @@ impl UserRepo {
         Ok(users)
     }
 
+    // TODO: batch the update by creating a bounded work queue (semaphore)
+    // we are gonna cook the mongodb connection pool because its an unbounded fanout
+    // we can do bounded concurrency for writing into db or a true bulk write with the sdk
     pub async fn bulk_update_users(&self, users: Vec<User>) -> Result<()> {
         let collection = self.collection.clone();
         let handles: Vec<_> = users
@@ -74,6 +77,8 @@ impl UserRepo {
                 tokio::spawn(async move {
                     let _ = collection
                         .update_one(
+                            // alot of overhead to allocate the bjson
+                            // can use smallvec and vecdeque?
                             doc! {"email": &user.email, "name": &user.name},
                             doc! {"$set": {"last_synced": user.last_synced}},
                         )

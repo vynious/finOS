@@ -107,6 +107,7 @@ impl IngestorService {
             return Ok(());
         }
         // store receipts
+        // TODO: might explode if too many receipts
         self.receipt_service.store(all_receipts).await?;
         Ok(())
     }

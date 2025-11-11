@@ -24,7 +24,7 @@ pub struct GmailMessagesResponse {
     pub result_size_estimate: Option<u64>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct GmailMessage {
     pub id: String,
     #[serde(rename = "threadId")]

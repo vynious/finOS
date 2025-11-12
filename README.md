@@ -5,6 +5,15 @@ It connects to your Gmail inbox, extracts purchase receipts with the help of an 
 
 ---
 
+## Visuals
+
+![FinOS dashboard preview](docs/dashboard.png)
+
+![Receipt ingestion and sync status](docs/txn_and_sync_status.png)
+
+
+---
+
 ## 1. What’s inside?
 
 | Component | Description | Tech |
@@ -134,10 +143,3 @@ Consult the component READMEs for API details and development tips.
 
 Pull requests and design discussions are welcome. Open an issue with context and proposed changes before large contributions.
 
----
-
-## 10. Visuals
-
-![FinOS dashboard preview](docs/dashboard.png)
-
-![Receipt ingestion and sync status](docs/txn_and_sync_status.png)

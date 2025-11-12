@@ -1,19 +1,26 @@
 use crate::domain::auth::models::TokenRecord;
 use crate::domain::auth::service::AuthService;
 use crate::domain::email::repository::EmailRepo;
-use crate::domain::receipt::models::ReceiptList;
+use crate::domain::email::{self, models::*};
+use crate::domain::receipt::models::{Receipt, ReceiptList};
 use crate::domain::{auth::repository::TokenStore, email::models::*};
-use anyhow::{bail, Context, Ok, Result};
+use anyhow::{bail, Context, Result};
 use base64::Engine;
 use ego_tree::NodeRef;
+use futures::{stream, StreamExt};
 use mail_parser::{Message, MessageParser};
 use ollama_rs::{generation::completion::request::GenerationRequest, Ollama};
+use once_cell::sync::Lazy;
 use regex::{escape, Regex};
 use reqwest::Client;
 use scraper::{Html, Node};
 use std::collections::HashSet;
 use std::sync::Arc;
-use time::OffsetDateTime;
+use std::{rc, vec};
+
+static SUBJECT_RE: Lazy<Regex> = Lazy::new(|| {
+    build_keyword_regex(&["transaction", "spent", "payment"])
+});
 
 // TODO: ??
 fn decode_base64url(s: &str) -> Result<Vec<u8>> {
@@ -91,67 +98,63 @@ impl EmailService {
         &self,
         email_addr: &str,
         queries: Vec<String>,
+        worker_count: usize,
     ) -> Result<ReceiptList> {
         println!("Processing...");
-        // TODO: can cache this?
         let mut tracked_emails: HashSet<String> = self.get_tracked_emails(email_addr).await?;
         let mut all_receipts: ReceiptList = ReceiptList {
             transactions: Vec::new(),
         };
 
         // get authenticated token
-        // TODO: REMOVE HARD CODED PROVIDER
-        let token = self.internal_authenticate(email_addr, "google").await?;
+        let token = Arc::new(self.internal_authenticate(email_addr, "google").await?);
 
         println!("Getting emails based on queries");
-
         // get email ids by queries
         let emails = self.list_all_messages(&token, &queries.join(" ")).await?;
 
-        // omit out emails that are seen
-        let untracked_emails: Vec<&GmailMessage> = emails
-            .iter()
-            .filter(|email| !tracked_emails.contains(&email.id))
+        // omit out emails that are seen (track their ids)
+        let untracked_emails: Vec<GmailMessage> = emails
+            .into_iter()
+            .filter(|m| !tracked_emails.contains(&m.id))
             .collect();
 
-        // build regex for filtering unwanted emails without these keywords
-        // TODO: dont need rebuilt each time, use lazy static initialisation
-        let re = build_keyword_regex(&["transaction", "spent", "payment"]);
+        // early exit.
+        if untracked_emails.is_empty() {
+            println!("No new emails to process.");
+            return Ok(all_receipts);
+        }
 
-        // add into seen emails
-        // TODO: optimise the process by introducing spmc channel (bounded lockfree ring buffer)
-        // we will add a spmc channel the producer will pass in the untracked emails
-        // the consumers (n workers) will pull from the channel and retrieve the detailed
-        // email content and parse it through ollama.
-        for email in untracked_emails {
-            println!("Checking email: {}", email.id);
-            let parsed_email_content = self.fetch_and_parse_email(&token, &email.id).await?;
+        let receipts: Vec<Receipt> = stream::iter(untracked_emails)
+            .map(|m| {
+                let token = token.clone();
+                let s = self.clone();
+                async move {
+                    match s
+                        .single_process(email_addr, &m, token.as_str(), &SUBJECT_RE)
+                        .await
+                    {
+                        Ok(receipts) => receipts,
+                        Err(e) => {
+                            tracing::warn!(error = %e, id = %m.id, "single process failed");
+                            return vec![];
+                        }
+                    }
+                }
+            })
+            .buffer_unordered(worker_count)
+            .collect::<Vec<Vec<Receipt>>>()
+            .await
+            // consume and flatten
+            .into_iter()
+            .flatten()
+            .collect::<Vec<Receipt>>();
 
-            // check if email subject is something we want to parse
-            if !re.is_match(parsed_email_content.subject.as_deref().unwrap()) {
-                println!(
-                    "Skipping {}",
-                    parsed_email_content.subject.as_deref().unwrap()
-                );
-                continue;
+        for receipt in receipts {
+            if let Some(ref msg_id) = receipt.msg_id {
+                tracked_emails.insert(msg_id.clone());
             }
-
-            let issuer = parsed_email_content.from_name.as_deref().unwrap();
-
-            // get receipts from ollama
-            let receipts = self
-                .parse_with_ollmao(&parsed_email_content.html.unwrap())
-                .await?;
-
-            // save the receipts
-            for mut receipt in receipts.transactions {
-                receipt.msg_id = Some(email.id.to_string());
-                receipt.issuer = Some(issuer.to_string());
-                receipt.owner = Some(email_addr.to_string());
-                receipt.timestamp = Some(parsed_email_content.timestamp.clone().unwrap());
-                all_receipts.transactions.push(receipt);
-            }
-            tracked_emails.insert(email.id.to_string());
+            all_receipts.transactions.push(receipt);
         }
 
         println!("All Receipts -> {:#?}", all_receipts);
@@ -160,6 +163,36 @@ impl EmailService {
         self.update_tracked_emails(email_addr, tracked_emails)
             .await?;
         Ok(all_receipts)
+    }
+
+    async fn single_process(
+        &self,
+        addr: &str,
+        email: &GmailMessage,
+        token: &str,
+        regex: &Regex,
+    ) -> Result<Vec<Receipt>> {
+        let mut parsed_receipts: Vec<Receipt> = Vec::new();
+
+        let parsed_email_content = self.fetch_and_parse_email(&token, &email.id).await?;
+        if !regex.is_match(parsed_email_content.subject.as_deref().unwrap()) {
+            return Ok(vec![]);
+        }
+
+        let issuer = parsed_email_content.from_name.as_deref().unwrap();
+        let receipts = self
+            .parse_with_ollmao(&parsed_email_content.html.unwrap())
+            .await?;
+
+        for mut receipt in receipts.transactions {
+            receipt.msg_id = Some(email.id.to_string());
+            receipt.issuer = Some(issuer.to_string());
+            receipt.owner = Some(addr.to_string());
+            receipt.timestamp = Some(parsed_email_content.timestamp.clone().unwrap());
+            parsed_receipts.push(receipt);
+        }
+
+        Ok(parsed_receipts)
     }
 
     /// Lists all the Messages based on the given queries.

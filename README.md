@@ -133,3 +133,11 @@ Consult the component READMEs for API details and development tips.
 - Improved frontend UX (Tailwind layout, charts)
 
 Pull requests and design discussions are welcome. Open an issue with context and proposed changes before large contributions.
+
+---
+
+## 10. Visuals
+
+![FinOS dashboard preview](docs/dashboard.png)
+
+![Receipt ingestion and sync status](docs/txn_and_sync_status.png)

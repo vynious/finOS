@@ -66,14 +66,16 @@ impl IngestorService {
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis() as i64;
-
+            
+        
+        
         for (idx, user) in users.iter().enumerate() {
             let queries = self.build_query(now_ms, &user);
             let email_service = email_service.clone();
             let user_task_email = user.email.clone();
             let handle = tokio::spawn(async move {
                 email_service
-                    .query_and_process_untracked(&user_task_email, queries)
+                    .query_and_process_untracked(&user_task_email, queries, 4)
                     .await
             });
             handles.push((idx, handle));

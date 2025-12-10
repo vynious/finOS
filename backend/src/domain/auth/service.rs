@@ -219,7 +219,7 @@ impl AuthService {
                 if let Some(expiry_time) = token.expires_at {
                     if expiry_time < OffsetDateTime::now_utc() {
                         let new_token = self.refresh_access_token(user_id, provider).await?;
-                        let _ = self.store_token(token);
+                        let _ = self.store_token(new_token.clone()).await;
                         return Ok(new_token);
                     }
                 }

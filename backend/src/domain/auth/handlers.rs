@@ -15,7 +15,7 @@ use time::{Duration, OffsetDateTime};
 
 use crate::{
     common::app_state::AppState,
-    domain::auth::models::{Claims, TokenRecord},
+    domain::auth::models::TokenRecord,
 };
 
 #[derive(Deserialize)]

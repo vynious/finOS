@@ -66,11 +66,9 @@ impl IngestorService {
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis() as i64;
-            
-        
-        
+
         for (idx, user) in users.iter().enumerate() {
-            let queries = self.build_query(now_ms, &user);
+            let queries = self.build_query(now_ms, user.last_synced);
             let email_service = email_service.clone();
             let user_task_email = user.email.clone();
             let handle = tokio::spawn(async move {
@@ -122,9 +120,9 @@ impl IngestorService {
         diff_days.to_string()
     }
 
-    fn build_query(&self, current_time: i64, user: &User) -> Vec<String> {
+    pub fn build_query(&self, current_time: i64, last_synced: Option<i64>) -> Vec<String> {
         let category = "primary";
-        let days: String = match user.last_synced {
+        let days: String = match last_synced {
             Some(last_synced) => IngestorService::get_time_query(current_time, last_synced),
             None => {
                 // default 1 week

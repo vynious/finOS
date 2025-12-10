@@ -1,10 +1,9 @@
-use crate::domain::auth::models::TokenRecord;
 use crate::domain::auth::service::AuthService;
 use crate::domain::email::repository::EmailRepo;
-use crate::domain::email::{self, models::*};
+use crate::domain::email::models::*;
 use crate::domain::receipt::models::{Receipt, ReceiptList};
-use crate::domain::{auth::repository::TokenStore, email::models::*};
-use anyhow::{bail, Context, Result};
+use crate::domain::auth::repository::TokenStore;
+use anyhow::{Context, Result};
 use base64::Engine;
 use ego_tree::NodeRef;
 use futures::{stream, StreamExt};
@@ -16,7 +15,7 @@ use reqwest::Client;
 use scraper::{Html, Node};
 use std::collections::HashSet;
 use std::sync::Arc;
-use std::{rc, vec};
+use std::vec;
 
 static SUBJECT_RE: Lazy<Regex> = Lazy::new(|| {
     build_keyword_regex(&["transaction", "spent", "payment"])

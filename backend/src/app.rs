@@ -6,13 +6,13 @@ use crate::{
             routes::routes as auth_routes,
             service::AuthService,
         },
-        email::service::EmailService,
+        email::{routes::routes as email_routes, service::EmailService},
         ingestor::service::IngestorService,
         receipt::{routes::routes as receipt_routes, service::ReceiptService},
         user::{routes::routes as user_routes, service::UserService},
     },
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use axum::{
     http::{self, HeaderValue},
     routing::get,
@@ -23,7 +23,7 @@ use reqwest::Method;
 use std::{env, sync::Arc, time::Duration};
 use tokio::time::interval;
 use tower_http::{
-    cors::{AllowHeaders, AllowMethods, Any, CorsLayer},
+    cors::{AllowHeaders, CorsLayer},
     trace::TraceLayer,
 };
 use tracing::error;
@@ -65,6 +65,7 @@ pub fn mount_routes(state: Arc<AppState>) -> Router {
     let base_state = state.clone();
     let auth_state = state.clone();
     let receipt_state = state.clone();
+    let email_state = state.clone();
     let user_state = state;
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::OPTIONS])
@@ -87,6 +88,7 @@ pub fn mount_routes(state: Arc<AppState>) -> Router {
         .with_state(base_state)
         .merge(auth_routes(auth_state))
         .merge(receipt_routes(receipt_state))
+        .merge(email_routes(email_state))
         .merge(user_routes(user_state))
         .layer(cors)
         .layer(TraceLayer::new_for_http())

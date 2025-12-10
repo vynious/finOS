@@ -24,6 +24,7 @@ import {
     buildTimeSeriesWithProjector,
     detectAnomaliesWithProjector,
 } from "@/lib/analytics";
+import { triggerReceiptSync } from "@/lib/receipts";
 import type { CurrencyCode } from "@/lib/config";
 import type {
     Receipt,
@@ -201,14 +202,39 @@ export default function DashboardPage() {
     }, [session.email, loading, error, receipts]);
 
     const handleRetry = async () => {
-        setSyncStatus((prev) => ({
-            ...prev,
+        if (!session.email) {
+            setSyncStatus({
+                state: "error",
+                lastSynced: syncStatus.lastSynced,
+                message: "No email available for sync.",
+            });
+            return;
+        }
+
+        setSyncStatus({
             state: "syncing",
-            message: session.email
-                ? `Syncing Gmail for ${session.email}…`
-                : "Syncing Gmail…",
-        }));
-        await refresh();
+            lastSynced: syncStatus.lastSynced,
+            message: `Syncing Gmail for ${session.email}…`,
+        });
+
+        try {
+            await triggerReceiptSync(
+                session.email,
+                session.profile?.last_synced ?? undefined,
+            );
+            await refresh();
+            setSyncStatus({
+                state: "success",
+                lastSynced: new Date().toISOString(),
+                message: `Triggered ingest for ${session.email}`,
+            });
+        } catch (err) {
+            setSyncStatus({
+                state: "error",
+                lastSynced: syncStatus.lastSynced,
+                message: (err as Error).message,
+            });
+        }
     };
 
     const resetFilters = () =>

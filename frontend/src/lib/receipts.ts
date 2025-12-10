@@ -1,4 +1,10 @@
-import type { BackendReceipt, Receipt } from "@/types";
+import { config } from "@/lib/config";
+import type {
+    ApiResponse,
+    BackendReceipt,
+    BackendReceiptList,
+    Receipt,
+} from "@/types";
 
 const DEFAULT_OWNER = "unknown@finos.app";
 const DEFAULT_MERCHANT = "Unknown merchant";
@@ -11,9 +17,7 @@ function normalizeTimestamp(value?: number | null): number {
     return value > 10_000_000_000 ? value : value * 1000;
 }
 
-function normalizeCategories(
-    categories?: (string | null)[] | null,
-): string[] {
+function normalizeCategories(categories?: (string | null)[] | null): string[] {
     if (!categories) return [];
     return categories
         .map((category) => category?.trim())
@@ -49,4 +53,31 @@ export function mapBackendReceipts(
             timestamp: new Date(timestampMs).toISOString(),
         };
     });
+}
+
+export async function triggerReceiptSync(
+    email: string,
+    lastSynced?: number | null,
+) {
+    const endpoint = `${config.apiBaseUrl}/sync`;
+    const response = await fetch(endpoint, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            email,
+            last_synced: lastSynced ?? undefined,
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Sync failed (${response.status})`);
+    }
+
+    const payload: ApiResponse<BackendReceiptList> = await response.json();
+    if (!payload.success || !payload.data) {
+        throw new Error(payload.error ?? "Backend declined the sync request.");
+    }
+
+    return mapBackendReceipts(payload.data.transactions, email);
 }

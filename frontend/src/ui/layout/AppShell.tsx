@@ -1,6 +1,7 @@
 "use client";
 
 import { useCurrency } from "@/context/currency-context";
+import { useTheme } from "@/context/theme-context";
 import type { DateRange } from "@/types";
 import { useMemo, useState } from "react";
 
@@ -54,6 +55,7 @@ export function AppShell({
     children,
 }: AppShellProps) {
     const { currency, setCurrency, supported } = useCurrency();
+    const { theme, toggleTheme } = useTheme();
     const initials = useMemo(
         () =>
             email
@@ -68,7 +70,7 @@ export function AppShell({
     const [navOpen, setNavOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-50 lg:grid lg:grid-cols-[240px_1fr]">
+        <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] lg:grid lg:grid-cols-[240px_1fr]">
             {navOpen && (
                 <button
                     type="button"
@@ -111,6 +113,25 @@ export function AppShell({
                     ))}
                 </nav>
                 <div className="mt-auto space-y-3 text-xs text-slate-400">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                                    Theme
+                                </p>
+                                <p className="text-sm text-white">
+                                    {theme === "dark" ? "Dark" : "Light"} mode
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={toggleTheme}
+                                className="rounded-full border border-slate-800 bg-slate-950 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/60 hover:text-emerald-200"
+                            >
+                                Toggle
+                            </button>
+                        </div>
+                    </div>
                     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
                         <p className="font-semibold text-white">
                             Connected Gmail

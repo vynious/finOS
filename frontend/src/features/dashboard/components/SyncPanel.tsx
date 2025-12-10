@@ -2,6 +2,7 @@
 
 import type { SyncStatus } from "@/types";
 import { useMemo } from "react";
+import { Panel } from "@/ui/primitives/Panel";
 
 type SyncPanelProps = {
     status: SyncStatus;
@@ -49,7 +50,7 @@ export function SyncPanel({ status, onRetry }: SyncPanelProps) {
             : "Every ~60s (configurable)";
 
     return (
-        <section className="rounded-2xl border border-slate-900/60 bg-gradient-to-br from-slate-900/80 via-slate-900/40 to-slate-900/90 p-5 shadow-[0_35px_60px_-15px_rgba(15,23,42,0.55)]">
+        <Panel className="bg-gradient-to-br from-slate-900/80 via-slate-900/40 to-slate-900/90 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
             <div className="mb-4 flex items-center justify-between">
                 <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
@@ -91,6 +92,6 @@ export function SyncPanel({ status, onRetry }: SyncPanelProps) {
                     Refresh data
                 </button>
             </div>
-        </section>
+        </Panel>
     );
 }

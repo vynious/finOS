@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { apiFetch, ApiError } from "@/lib/api";
 import { applyFilters } from "@/lib/analytics";
-import { config } from "@/lib/config";
 import { mapBackendReceipts } from "@/lib/receipts";
 import type {
     ApiResponse,
@@ -28,24 +28,10 @@ export function useReceipts(filters: ReceiptFilters) {
                     return false;
                 }
                 setLoading(true);
-                const endpoint = `${config.apiBaseUrl}/receipts/${encodeURIComponent(email)}`;
-                const response = await fetch(endpoint, {
-                    credentials: "include",
-                    signal,
-                });
-                if (response.status === 401 || response.status === 403) {
-                    setReceipts([]);
-                    setError(null);
-                    console.log(response);
-                    return false;
-                }
-                if (!response.ok) {
-                    throw new Error(
-                        `Failed to load receipts (${response.status})`,
-                    );
-                }
-                const payload: ApiResponse<BackendReceiptList> =
-                    await response.json();
+                const payload = await apiFetch<ApiResponse<BackendReceiptList>>(
+                    `/receipts/${encodeURIComponent(email)}`,
+                    { signal },
+                );
                 if (!payload.success) {
                     throw new Error(
                         payload.error ??
@@ -61,6 +47,14 @@ export function useReceipts(filters: ReceiptFilters) {
                 return success;
             } catch (err) {
                 if ((err as Error)?.name === "AbortError") return false;
+                if (
+                    err instanceof ApiError &&
+                    (err.status === 401 || err.status === 403)
+                ) {
+                    setReceipts([]);
+                    setError(null);
+                    return false;
+                }
                 console.warn("Failed to load receipts", err);
                 setError((err as Error).message);
                 setReceipts([]);
@@ -99,28 +93,13 @@ export function useReceipts(filters: ReceiptFilters) {
                 ),
             );
 
-            const endpoint = `${config.apiBaseUrl}/receipts/${encodeURIComponent(
-                receiptId,
-            )}/categories`;
-
-            const controller = new AbortController();
-
             try {
-                const response = await fetch(endpoint, {
+                const payload = await apiFetch<
+                    ApiResponse<{ categories: string[] }>
+                >(`/receipts/${encodeURIComponent(receiptId)}/categories`, {
                     method: "PUT",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ categories: nextCategories }),
-                    signal: controller.signal,
                 });
-
-                if (!response.ok) {
-                    throw new Error(
-                        `Failed to update categories (${response.status})`,
-                    );
-                }
-                const payload: ApiResponse<{ categories: string[] }> =
-                    await response.json();
                 if (!payload.success) {
                     throw new Error(
                         payload.error ??

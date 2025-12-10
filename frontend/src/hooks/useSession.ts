@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { apiFetch, ApiError } from "@/lib/api";
 import { config } from "@/lib/config";
 import type { ApiResponse, PublicUser } from "@/types";
 
@@ -29,29 +30,10 @@ export function useSession() {
     const loadProfile = useCallback(async (signal?: AbortSignal) => {
         setState((prev) => ({ ...prev, loading: true, error: null }));
         try {
-            const response = await fetch(`${config.apiBaseUrl}/users/me`, {
-                credentials: "include",
-                signal,
-            });
-
-            if (response.status === 401 || response.status === 403) {
-                window.localStorage.removeItem(LOCAL_EMAIL_KEY);
-                setState({
-                    email: null,
-                    name: null,
-                    profile: null,
-                    isAuthenticated: false,
-                    loading: false,
-                    error: null,
-                });
-                return false;
-            }
-
-            if (!response.ok) {
-                throw new Error(`Failed to load session (${response.status})`);
-            }
-
-            const payload: ApiResponse<PublicUser> = await response.json();
+            const payload = await apiFetch<ApiResponse<PublicUser>>(
+                "/users/me",
+                { signal },
+            );
             if (!payload.success || !payload.data) {
                 throw new Error(
                     payload.error ?? "Backend declined the session request.",
@@ -70,6 +52,21 @@ export function useSession() {
             return true;
         } catch (err) {
             if ((err as Error).name === "AbortError") {
+                return false;
+            }
+            if (
+                err instanceof ApiError &&
+                (err.status === 401 || err.status === 403)
+            ) {
+                window.localStorage.removeItem(LOCAL_EMAIL_KEY);
+                setState({
+                    email: null,
+                    name: null,
+                    profile: null,
+                    isAuthenticated: false,
+                    loading: false,
+                    error: null,
+                });
                 return false;
             }
             window.localStorage.removeItem(LOCAL_EMAIL_KEY);

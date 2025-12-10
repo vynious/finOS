@@ -1,4 +1,5 @@
-import { config } from "@/lib/config";
+import { apiFetch } from "@/lib/api";
+import { currencyRates } from "@/lib/config";
 import type {
     ApiResponse,
     BackendReceipt,
@@ -24,6 +25,15 @@ function normalizeCategories(categories?: (string | null)[] | null): string[] {
         .filter((category): category is string => Boolean(category));
 }
 
+function sanitizeCurrency(code?: string | null): string {
+    const normalized = code?.trim().toUpperCase();
+    if (!normalized) return DEFAULT_CURRENCY;
+    if (normalized.length !== 3) return DEFAULT_CURRENCY;
+    if (!/^[A-Z]{3}$/.test(normalized)) return DEFAULT_CURRENCY;
+    if (!currencyRates[normalized]) return DEFAULT_CURRENCY;
+    return normalized;
+}
+
 export function mapBackendReceipts(
     receipts: BackendReceipt[] = [],
     fallbackOwner?: string,
@@ -36,6 +46,7 @@ export function mapBackendReceipts(
             receipt.issuer?.trim() ??
             DEFAULT_MERCHANT;
         const issuer = receipt.issuer?.trim() || DEFAULT_ISSUER;
+        const currency = sanitizeCurrency(receipt.currency);
         const timestampMs = normalizeTimestamp(receipt.timestamp);
         const idSource =
             receipt.msg_id ??
@@ -48,7 +59,7 @@ export function mapBackendReceipts(
             issuer,
             merchant,
             amount: receipt.amount ?? 0,
-            currency: (receipt.currency ?? DEFAULT_CURRENCY).toUpperCase(),
+            currency,
             categories: normalizeCategories(receipt.categories),
             timestamp: new Date(timestampMs).toISOString(),
         };
@@ -59,22 +70,13 @@ export async function triggerReceiptSync(
     email: string,
     lastSynced?: number | null,
 ) {
-    const endpoint = `${config.apiBaseUrl}/sync`;
-    const response = await fetch(endpoint, {
+    const payload = await apiFetch<ApiResponse<BackendReceiptList>>("/sync", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             email,
             last_synced: lastSynced ?? undefined,
         }),
     });
-
-    if (!response.ok) {
-        throw new Error(`Sync failed (${response.status})`);
-    }
-
-    const payload: ApiResponse<BackendReceiptList> = await response.json();
     if (!payload.success || !payload.data) {
         throw new Error(payload.error ?? "Backend declined the sync request.");
     }

@@ -18,19 +18,15 @@ import { SyncPanel } from "@/features/dashboard/components/SyncPanel";
 import { useCurrency } from "@/context/currency-context";
 import { useSessionContext } from "@/context/session-context";
 import { useReceipts } from "@/hooks/useReceipts";
+import { useSyncController } from "@/hooks/useSyncController";
 import {
     buildCategorySlices,
     buildSummary,
     buildTimeSeriesWithProjector,
     detectAnomaliesWithProjector,
 } from "@/lib/analytics";
-import { triggerReceiptSync } from "@/lib/receipts";
 import type { CurrencyCode } from "@/lib/config";
-import type {
-    Receipt,
-    ReceiptFilters as ReceiptFiltersType,
-    SyncStatus,
-} from "@/types";
+import type { Receipt, ReceiptFilters as ReceiptFiltersType } from "@/types";
 
 type InlineNotice = {
     id: string;
@@ -40,11 +36,6 @@ type InlineNotice = {
 };
 
 const DEFAULT_RANGE: ReceiptFiltersType["range"] = "30d";
-const toIso = (ts?: number | null) => {
-    if (!ts) return undefined;
-    const ms = ts > 10_000_000_000 ? ts : ts * 1000;
-    return new Date(ms).toISOString();
-};
 
 const formatReceiptAmount = (receipt: Receipt) =>
     new Intl.NumberFormat(undefined, {
@@ -82,17 +73,6 @@ function buildActivityEntries(
     }));
 }
 
-const buildSyncStatus = (
-    email?: string | null,
-    lastSynced?: number | null,
-): SyncStatus => ({
-    state: "idle",
-    lastSynced: toIso(lastSynced),
-    message: email
-        ? `Waiting for Gmail ingest for ${email}`
-        : "Connect Gmail to start ingesting receipts.",
-});
-
 export default function DashboardPage() {
     const session = useSessionContext();
     const { convert, supported } = useCurrency();
@@ -106,9 +86,6 @@ export default function DashboardPage() {
     const [activeSection, setActiveSection] = useState<
         "transactions" | "settings"
     >("transactions");
-    const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
-        buildSyncStatus(session.email, session.profile?.last_synced),
-    );
     const [inlineNotice, setInlineNotice] = useState<
         InlineNotice | undefined
     >();
@@ -122,6 +99,15 @@ export default function DashboardPage() {
 
     const { receipts, filtered, loading, error, refresh, updateCategories } =
         useReceipts(filters);
+
+    const { syncStatus, handleRetry } = useSyncController({
+        email: session.email,
+        profileLastSynced: session.profile?.last_synced ?? undefined,
+        loading,
+        error,
+        receipts,
+        refresh,
+    });
 
     const supportedSet = useMemo(
         () => new Set<CurrencyCode>(supported),
@@ -169,91 +155,6 @@ export default function DashboardPage() {
         () => buildActivityEntries(receipts, session.email ?? filters.email),
         [receipts, session.email, filters.email],
     );
-
-    useEffect(() => {
-        if (!session.email) {
-            setSyncStatus(buildSyncStatus(undefined));
-            return;
-        }
-
-        if (loading) {
-            setSyncStatus((prev) => ({
-                ...prev,
-                state: "syncing",
-                message: `Syncing Gmail for ${session.email}…`,
-            }));
-            return;
-        }
-
-        if (error) {
-            setSyncStatus((prev) => ({
-                ...prev,
-                state: "error",
-                message: `Couldn't load receipts for ${session.email}: ${error}`,
-            }));
-            return;
-        }
-
-        if (receipts.length) {
-            setSyncStatus({
-                state: "success",
-                lastSynced:
-                    syncStatus.lastSynced ??
-                    toIso(session.profile?.last_synced) ??
-                    new Date().toISOString(),
-                message: `Loaded ${receipts.length} receipts for ${session.email}`,
-            });
-        } else {
-            setSyncStatus({
-                state: "idle",
-                lastSynced: toIso(session.profile?.last_synced),
-                message: `No receipts found for ${session.email} yet.`,
-            });
-        }
-    }, [
-        session.email,
-        loading,
-        error,
-        receipts,
-        session.profile,
-        syncStatus.lastSynced,
-    ]);
-
-    const handleRetry = async () => {
-        if (!session.email) {
-            setSyncStatus({
-                state: "error",
-                lastSynced: toIso(session.profile?.last_synced),
-                message: "No email available for sync.",
-            });
-            return;
-        }
-
-        setSyncStatus({
-            state: "syncing",
-            lastSynced: toIso(session.profile?.last_synced),
-            message: `Syncing Gmail for ${session.email}…`,
-        });
-
-        try {
-            await triggerReceiptSync(
-                session.email,
-                session.profile?.last_synced ?? undefined,
-            );
-            await refresh();
-            setSyncStatus({
-                state: "success",
-                lastSynced: new Date().toISOString(),
-                message: `Triggered ingest for ${session.email}`,
-            });
-        } catch (err) {
-            setSyncStatus({
-                state: "error",
-                lastSynced: toIso(session.profile?.last_synced),
-                message: (err as Error).message,
-            });
-        }
-    };
 
     const resetFilters = () =>
         setFilters(() => ({

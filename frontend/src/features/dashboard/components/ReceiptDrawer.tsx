@@ -23,6 +23,17 @@ export function ReceiptDrawer({
     const { convert, format, supported } = useCurrency();
     const [localCategories, setLocalCategories] = useState<string[]>([]);
     const [newCategory, setNewCategory] = useState("");
+    const [suggestions] = useState<string[]>([
+        "Groceries",
+        "Dining",
+        "Transport",
+        "Subscriptions",
+        "Utilities",
+        "Shopping",
+        "Travel",
+        "Health",
+        "Income",
+    ]);
     const [saving, setSaving] = useState(false);
     const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
 
@@ -195,6 +206,34 @@ export function ReceiptDrawer({
                             >
                                 Add
                             </button>
+                        </div>
+                        <div className="mt-3">
+                            <p className="text-xs uppercase tracking-widest text-slate-500">
+                                Suggestions
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                {suggestions.map((suggestion) => (
+                                    <button
+                                        key={suggestion}
+                                        type="button"
+                                        onClick={() => {
+                                            if (
+                                                localCategories.includes(
+                                                    suggestion,
+                                                )
+                                            )
+                                                return;
+                                            setLocalCategories((prev) => [
+                                                ...prev,
+                                                suggestion,
+                                            ]);
+                                        }}
+                                        className="rounded-full border border-slate-800 px-3 py-1 text-xs text-slate-200 transition hover:border-emerald-400 hover:text-emerald-200"
+                                    >
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <button
                             type="button"

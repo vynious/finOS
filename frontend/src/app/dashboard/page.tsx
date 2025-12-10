@@ -40,6 +40,11 @@ type InlineNotice = {
 };
 
 const DEFAULT_RANGE: ReceiptFiltersType["range"] = "30d";
+const toIso = (ts?: number | null) => {
+    if (!ts) return undefined;
+    const ms = ts > 10_000_000_000 ? ts : ts * 1000;
+    return new Date(ms).toISOString();
+};
 
 const formatReceiptAmount = (receipt: Receipt) =>
     new Intl.NumberFormat(undefined, {
@@ -77,9 +82,12 @@ function buildActivityEntries(
     }));
 }
 
-const buildSyncStatus = (email?: string | null): SyncStatus => ({
+const buildSyncStatus = (
+    email?: string | null,
+    lastSynced?: number | null,
+): SyncStatus => ({
     state: "idle",
-    lastSynced: undefined,
+    lastSynced: toIso(lastSynced),
     message: email
         ? `Waiting for Gmail ingest for ${email}`
         : "Connect Gmail to start ingesting receipts.",
@@ -99,7 +107,7 @@ export default function DashboardPage() {
         "transactions" | "settings"
     >("transactions");
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
-        buildSyncStatus(session.email),
+        buildSyncStatus(session.email, session.profile?.last_synced),
     );
     const [inlineNotice, setInlineNotice] = useState<
         InlineNotice | undefined
@@ -189,23 +197,33 @@ export default function DashboardPage() {
         if (receipts.length) {
             setSyncStatus({
                 state: "success",
-                lastSynced: new Date().toISOString(),
+                lastSynced:
+                    syncStatus.lastSynced ??
+                    toIso(session.profile?.last_synced) ??
+                    new Date().toISOString(),
                 message: `Loaded ${receipts.length} receipts for ${session.email}`,
             });
         } else {
             setSyncStatus({
                 state: "idle",
-                lastSynced: undefined,
+                lastSynced: toIso(session.profile?.last_synced),
                 message: `No receipts found for ${session.email} yet.`,
             });
         }
-    }, [session.email, loading, error, receipts]);
+    }, [
+        session.email,
+        loading,
+        error,
+        receipts,
+        session.profile,
+        syncStatus.lastSynced,
+    ]);
 
     const handleRetry = async () => {
         if (!session.email) {
             setSyncStatus({
                 state: "error",
-                lastSynced: syncStatus.lastSynced,
+                lastSynced: toIso(session.profile?.last_synced),
                 message: "No email available for sync.",
             });
             return;
@@ -213,7 +231,7 @@ export default function DashboardPage() {
 
         setSyncStatus({
             state: "syncing",
-            lastSynced: syncStatus.lastSynced,
+            lastSynced: toIso(session.profile?.last_synced),
             message: `Syncing Gmail for ${session.email}…`,
         });
 
@@ -231,7 +249,7 @@ export default function DashboardPage() {
         } catch (err) {
             setSyncStatus({
                 state: "error",
-                lastSynced: syncStatus.lastSynced,
+                lastSynced: toIso(session.profile?.last_synced),
                 message: (err as Error).message,
             });
         }

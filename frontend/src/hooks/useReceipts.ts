@@ -36,7 +36,7 @@ export function useReceipts(filters: ReceiptFilters) {
                 if (response.status === 401 || response.status === 403) {
                     setReceipts([]);
                     setError(null);
-                    console.log(response)
+                    console.log(response);
                     return false;
                 }
                 if (!response.ok) {
@@ -85,9 +85,12 @@ export function useReceipts(filters: ReceiptFilters) {
 
     const updateCategories = useCallback(
         async (receiptId: string, categories: string[]) => {
-            const nextCategories = categories.filter(
-                (cat) => cat.trim() !== "",
-            );
+            const previous = receipts;
+            const nextCategories = categories
+                .map((cat) => cat.trim())
+                .filter((cat) => cat !== "");
+
+            // optimistic update
             setReceipts((prev) =>
                 prev.map((receipt) =>
                     receipt.id === receiptId
@@ -95,11 +98,44 @@ export function useReceipts(filters: ReceiptFilters) {
                         : receipt,
                 ),
             );
-            // TODO: integrate with backend PATCH endpoint when available.
-            await new Promise((resolve) => setTimeout(resolve, 300));
-            return true;
+
+            const endpoint = `${config.apiBaseUrl}/receipts/${encodeURIComponent(
+                receiptId,
+            )}/categories`;
+
+            const controller = new AbortController();
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ categories: nextCategories }),
+                    signal: controller.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to update categories (${response.status})`,
+                    );
+                }
+                const payload: ApiResponse<{ categories: string[] }> =
+                    await response.json();
+                if (!payload.success) {
+                    throw new Error(
+                        payload.error ??
+                            "Backend declined the category update.",
+                    );
+                }
+                return true;
+            } catch (err) {
+                // rollback
+                setReceipts(previous);
+                console.warn("Failed to update categories", err);
+                return false;
+            }
         },
-        [],
+        [receipts],
     );
 
     return {

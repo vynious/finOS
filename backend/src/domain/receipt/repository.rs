@@ -105,4 +105,16 @@ impl ReceiptRepo {
         })
         .await
     }
+
+    pub async fn upsert_categories(&self, msg_id: &str, categories: Vec<String>) -> Result<()> {
+        let _ = self
+            .collection
+            .update_one(
+                doc! {"msg_id": msg_id},
+                doc! {"$set": doc! {"categories": categories}},
+            )
+            .await
+            .context(format!("failed to update categories"))?;
+        Ok(())
+    }
 }

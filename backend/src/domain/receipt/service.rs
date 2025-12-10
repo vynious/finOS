@@ -27,4 +27,10 @@ impl ReceiptService {
             transactions: receipts,
         })
     }
+
+    pub async fn update_categories(&self, msg_id: &str, categories: Vec<String>) -> Result<()> {
+        println!("Updating categories for {}", msg_id);
+        self.db_client.upsert_categories(msg_id, categories).await?;
+        Ok(())
+    }
 }

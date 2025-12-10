@@ -37,6 +37,21 @@ export function ReceiptsTable({
         [convert, format, supportedSet],
     );
 
+    const formatOriginalAmount = useCallback((receipt: Receipt) => {
+        const currencyCode = (receipt.currency ?? "USD").toUpperCase();
+        try {
+            return new Intl.NumberFormat(undefined, {
+                style: "currency",
+                currency: currencyCode,
+            }).format(receipt.amount);
+        } catch {
+            return new Intl.NumberFormat(undefined, {
+                style: "currency",
+                currency: "USD",
+            }).format(receipt.amount);
+        }
+    }, []);
+
     if (loading) {
         return (
             <div className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-10 text-center text-sm text-slate-500">
@@ -80,10 +95,7 @@ export function ReceiptsTable({
                                     {convertAmount(receipt)}
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                    {new Intl.NumberFormat(undefined, {
-                                        style: "currency",
-                                        currency: receipt.currency ?? "USD",
-                                    }).format(receipt.amount)}
+                                    {formatOriginalAmount(receipt)}
                                 </p>
                             </div>
                         </div>
@@ -152,11 +164,7 @@ export function ReceiptsTable({
                                     <td className="px-5 py-4 text-right font-semibold text-white">
                                         {convertAmount(receipt)}
                                         <span className="ml-2 text-xs text-slate-500">
-                                            {new Intl.NumberFormat(undefined, {
-                                                style: "currency",
-                                                currency:
-                                                    receipt.currency ?? "USD",
-                                            }).format(receipt.amount)}
+                                            {formatOriginalAmount(receipt)}
                                         </span>
                                     </td>
                                     <td className="px-5 py-4 text-slate-400">

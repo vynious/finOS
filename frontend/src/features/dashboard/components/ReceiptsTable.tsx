@@ -294,7 +294,7 @@ export function ReceiptsTable({
                                     <SortButton
                                         label="Merchant"
                                         sortKey="merchant"
-                                        align="left"
+                                        align="center"
                                         border
                                     />
                                 </Th>

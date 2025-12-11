@@ -2,7 +2,7 @@
 
 import type { SyncStatus } from "@/types";
 import { useMemo } from "react";
-import { Panel } from "@/ui/primitives/Panel";
+import { Badge, Box, Button, Flex, Text } from "@chakra-ui/react";
 
 type SyncPanelProps = {
     status: SyncStatus;
@@ -25,13 +25,13 @@ export function SyncPanel({ status, onRetry }: SyncPanelProps) {
     const statusColor = useMemo(() => {
         switch (status.state) {
             case "syncing":
-                return "text-amber-300";
+                return "#f59e0b";
             case "error":
-                return "text-rose-300";
+                return "#f43f5e";
             case "success":
-                return "text-emerald-300";
+                return "#10b981";
             default:
-                return "text-slate-400";
+                return "var(--muted)";
         }
     }, [status.state]);
 
@@ -50,48 +50,93 @@ export function SyncPanel({ status, onRetry }: SyncPanelProps) {
             : "Every ~60s (configurable)";
 
     return (
-        <Panel className="bg-gradient-to-br from-slate-900/80 via-slate-900/40 to-slate-900/90 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
-            <div className="mb-4 flex items-center justify-between">
-                <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+        <Box
+            rounded="2xl"
+            border="1px solid"
+            borderColor="var(--border)"
+            bg="var(--surface)"
+            p={5}
+            boxShadow="var(--shadow)"
+        >
+            <Flex mb={4} align="center" justify="space-between">
+                <Box>
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.3em"
+                        color="var(--muted)"
+                    >
                         Gmail ingest
-                    </p>
-                    <h3 className="text-lg font-semibold text-white">
+                    </Text>
+                    <Text as="h3" fontSize="lg" fontWeight="semibold">
                         Sync orchestrator
-                    </h3>
-                </div>
-                <span
-                    className={`rounded-full bg-slate-900 px-4 py-1 text-xs font-semibold ${statusColor}`}
+                    </Text>
+                </Box>
+                <Badge
+                    px={4}
+                    py={1}
+                    rounded="full"
+                    border="1px solid"
+                    borderColor="var(--border)"
+                    bg="var(--surface-soft)"
+                    color={statusColor}
+                    fontWeight="semibold"
+                    fontSize="xs"
                 >
                     {status.state.toUpperCase()}
-                </span>
-            </div>
-            <p className="text-sm text-slate-300">
+                </Badge>
+            </Flex>
+            <Text fontSize="sm" color="var(--muted)">
                 {status.message ?? statusCopy[status.state]}
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-400">
-                <div>
-                    <p className="text-xs uppercase tracking-widest text-slate-500">
+            </Text>
+            <Flex
+                mt={4}
+                wrap="wrap"
+                align="center"
+                gap={4}
+                fontSize="sm"
+                color="var(--muted)"
+            >
+                <Box>
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.2em"
+                        color="var(--muted)"
+                    >
                         Last synced
-                    </p>
-                    <p className="text-white">
+                    </Text>
+                    <Text color="var(--foreground)">
                         {formatRelative(status.lastSynced)}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs uppercase tracking-widest text-slate-500">
+                    </Text>
+                </Box>
+                <Box>
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.2em"
+                        color="var(--muted)"
+                    >
                         Next window
-                    </p>
-                    <p>{cadence}</p>
-                </div>
-                <button
+                    </Text>
+                    <Text color="var(--foreground)">{cadence}</Text>
+                </Box>
+                <Button
+                    ml="auto"
+                    variant="outline"
+                    borderColor="var(--border)"
+                    bg="var(--surface-soft)"
+                    color="var(--foreground)"
+                    _hover={{
+                        borderColor: "var(--accent)",
+                        color: "var(--accent)",
+                    }}
                     onClick={onRetry}
-                    className="ml-auto rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-emerald-400/60 hover:text-emerald-200"
-                    type="button"
+                    size="sm"
                 >
                     Refresh data
-                </button>
-            </div>
-        </Panel>
+                </Button>
+            </Flex>
+        </Box>
     );
 }

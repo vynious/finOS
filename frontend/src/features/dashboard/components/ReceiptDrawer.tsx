@@ -5,6 +5,26 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useCurrency } from "@/context/currency-context";
 import type { CurrencyCode } from "@/lib/config";
 import type { Receipt } from "@/types";
+import { formatDateTime } from "@/lib/dates";
+import {
+    Box,
+    Button,
+    Drawer,
+    DrawerBody,
+    DrawerCloseButton,
+    DrawerContent,
+    DrawerHeader,
+    DrawerOverlay,
+    Flex,
+    HStack,
+    Input,
+    Stack,
+    Tag,
+    TagCloseButton,
+    TagLabel,
+    Text,
+    Textarea,
+} from "@chakra-ui/react";
 
 type ReceiptDrawerProps = {
     receipt?: Receipt | null;
@@ -71,6 +91,7 @@ export function ReceiptDrawer({
     const drawerTitleId = useId();
 
     if (!receipt) return null;
+
     const baseCurrency = supportedSet.has(receipt.currency as CurrencyCode)
         ? (receipt.currency as CurrencyCode)
         : "USD";
@@ -113,177 +134,259 @@ export function ReceiptDrawer({
     };
 
     return (
-        <div
-            className="fixed inset-0 z-40 flex justify-end bg-slate-950/40 backdrop-blur-sm"
-            onClick={onClose}
-            role="presentation"
-        >
-            <aside
-                className="h-full w-full max-w-md border-l border-slate-900/60 bg-slate-950/95 px-8 py-8 text-slate-200 shadow-2xl"
-                onClick={(event) => event.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby={drawerTitleId}
+        <Drawer isOpen onClose={onClose} size="md" placement="right">
+            <DrawerOverlay />
+            <DrawerContent
+                bg="var(--surface)"
+                color="var(--foreground)"
+                borderLeft="1px solid"
+                borderColor="var(--border)"
             >
-                <button
-                    onClick={onClose}
-                    type="button"
-                    className="mb-6 text-sm text-slate-500 hover:text-white"
-                >
-                    ← Back to list
-                </button>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                    Receipt detail
-                </p>
-                <h3
-                    id={drawerTitleId}
-                    className="text-2xl font-semibold text-white"
-                >
-                    {receipt.merchant}
-                </h3>
-                <p className="text-sm text-slate-400">{receipt.issuer}</p>
-                <p className="text-xs text-slate-500">{receipt.owner}</p>
-                <div className="mt-4 space-y-1 text-slate-300">
-                    <p className="text-3xl font-semibold text-white">
-                        {convertedAmount}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                        {originalAmount} {receipt.currency ?? "USD"}
-                    </p>
-                </div>
-                <div className="mt-6 space-y-5 text-sm">
-                    <div>
-                        <p className="text-xs uppercase tracking-widest text-slate-500">
-                            Timestamp
-                        </p>
-                        <p className="text-white">
-                            {new Date(receipt.timestamp).toLocaleString()}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs uppercase tracking-widest text-slate-500">
-                            Categories
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                            {localCategories.map((cat) => (
-                                <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={() => removeCategory(cat)}
-                                    className="group flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-xs text-slate-200 transition hover:bg-rose-500/10 hover:text-rose-200"
-                                >
-                                    {cat}
-                                    <span className="text-slate-500 group-hover:text-rose-200">
-                                        ×
-                                    </span>
-                                </button>
-                            ))}
-                            {!localCategories.length && (
-                                <span className="text-xs text-slate-500">
-                                    No categories assigned yet.
-                                </span>
-                            )}
-                        </div>
-                        <div className="mt-3 flex gap-2">
-                            <input
-                                value={newCategory}
-                                onChange={(event) =>
-                                    setNewCategory(event.target.value)
-                                }
-                                onKeyDown={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault();
-                                        addCategory();
-                                    }
-                                }}
-                                placeholder="Add or edit category"
-                                className="flex-1 rounded-xl border border-slate-900 bg-slate-900/70 px-3 py-2 text-white outline-none focus:border-emerald-400"
-                            />
-                            <button
-                                type="button"
-                                onClick={addCategory}
-                                className="rounded-xl border border-emerald-400/60 px-4 py-2 text-xs font-semibold text-emerald-200 transition hover:border-emerald-300"
-                            >
-                                Add
-                            </button>
-                        </div>
-                        <div className="mt-3">
-                            <p className="text-xs uppercase tracking-widest text-slate-500">
-                                Suggestions
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {suggestions.map((suggestion) => (
-                                    <button
-                                        key={suggestion}
-                                        type="button"
-                                        onClick={() => {
-                                            if (
-                                                localCategories.includes(
-                                                    suggestion,
-                                                )
-                                            )
-                                                return;
-                                            setLocalCategories((prev) => [
-                                                ...prev,
-                                                suggestion,
-                                            ]);
-                                        }}
-                                        className="rounded-full border border-slate-800 px-3 py-1 text-xs text-slate-200 transition hover:border-emerald-400 hover:text-emerald-200"
-                                    >
-                                        {suggestion}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={!canSave || saving}
-                            className="mt-4 w-full rounded-xl bg-emerald-400/90 px-4 py-2 text-sm font-semibold text-slate-950 transition disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-400"
+                <DrawerCloseButton />
+                <DrawerHeader id={drawerTitleId}>
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.3em"
+                        color="var(--muted)"
+                    >
+                        Receipt detail
+                    </Text>
+                    <Text
+                        fontSize="2xl"
+                        fontWeight="semibold"
+                        color="var(--foreground)"
+                    >
+                        {receipt.merchant}
+                    </Text>
+                    <Text fontSize="sm" color="var(--muted)">
+                        {receipt.issuer}
+                    </Text>
+                    <Text fontSize="xs" color="var(--muted)">
+                        {receipt.owner}
+                    </Text>
+                    <Stack mt={4} spacing={1} color="var(--muted)">
+                        <Text
+                            fontSize="3xl"
+                            fontWeight="semibold"
+                            color="var(--foreground)"
                         >
-                            {saving ? "Saving…" : "Save categories"}
-                        </button>
-                        <div aria-live="polite">
-                            {status === "success" && (
-                                <p className="mt-2 text-xs text-emerald-300">
-                                    Categories updated.
-                                </p>
-                            )}
-                            {status === "error" && (
-                                <p className="mt-2 text-xs text-rose-300">
-                                    Something went wrong—try again.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                    {receipt.msgId && (
-                        <div>
-                            <p className="text-xs uppercase tracking-widest text-slate-500">
-                                Gmail source
-                            </p>
-                            <a
-                                href={`https://mail.google.com/mail/u/0/#inbox/${receipt.msgId}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-emerald-300 hover:text-emerald-200"
+                            {convertedAmount}
+                        </Text>
+                        <Text fontSize="sm">
+                            {originalAmount} {receipt.currency ?? "USD"}
+                        </Text>
+                    </Stack>
+                </DrawerHeader>
+
+                <DrawerBody>
+                    <Stack spacing={6} fontSize="sm">
+                        <Box>
+                            <Text
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.2em"
+                                color="var(--muted)"
                             >
-                                Open Gmail thread ↗
-                            </a>
-                        </div>
-                    )}
-                    <div>
-                        <p className="text-xs uppercase tracking-widest text-slate-500">
-                            Notes
-                        </p>
-                        <textarea
-                            className="mt-2 w-full rounded-xl border border-slate-900 bg-slate-900/70 p-3 text-sm text-white outline-none focus:border-emerald-400"
-                            placeholder="Add reviewer notes"
-                            defaultValue={receipt.notes}
-                            rows={4}
-                        />
-                    </div>
-                </div>
-            </aside>
-        </div>
+                                Timestamp
+                            </Text>
+                            <Text color="var(--foreground)">
+                                {formatDateTime(receipt.timestamp, {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                })}
+                            </Text>
+                        </Box>
+
+                        <Box>
+                            <Text
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.2em"
+                                color="var(--muted)"
+                                mb={2}
+                            >
+                                Categories
+                            </Text>
+                            <Flex wrap="wrap" gap={2}>
+                                {localCategories.map((cat) => (
+                                    <Tag
+                                        key={cat}
+                                        size="md"
+                                        rounded="full"
+                                        bg="var(--surface-soft)"
+                                        color="var(--foreground)"
+                                    >
+                                        <TagLabel>{cat}</TagLabel>
+                                        <TagCloseButton
+                                            onClick={() => removeCategory(cat)}
+                                        />
+                                    </Tag>
+                                ))}
+                                {!localCategories.length && (
+                                    <Text fontSize="xs" color="var(--muted)">
+                                        No categories assigned yet.
+                                    </Text>
+                                )}
+                            </Flex>
+                            <HStack mt={4} spacing={2}>
+                                <Input
+                                    value={newCategory}
+                                    onChange={(event) =>
+                                        setNewCategory(event.target.value)
+                                    }
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter") {
+                                            event.preventDefault();
+                                            addCategory();
+                                        }
+                                    }}
+                                    placeholder="Add or edit category"
+                                    borderColor="var(--border)"
+                                    bg="var(--surface-soft)"
+                                    color="var(--foreground)"
+                                    _focus={{
+                                        borderColor: "var(--accent)",
+                                        boxShadow: "none",
+                                    }}
+                                />
+                                <Button
+                                    variant="outline"
+                                    borderColor="var(--accent)"
+                                    color="var(--accent)"
+                                    onClick={addCategory}
+                                >
+                                    Add
+                                </Button>
+                            </HStack>
+                            <Box
+                                mt={4}
+                                rounded="xl"
+                                border="1px solid"
+                                borderColor="var(--border)"
+                                bg="var(--surface-soft)"
+                                p={3}
+                            >
+                                <Text
+                                    fontSize="xs"
+                                    textTransform="uppercase"
+                                    letterSpacing="0.2em"
+                                    color="var(--muted)"
+                                >
+                                    Suggestions
+                                </Text>
+                                <Flex wrap="wrap" gap={2} mt={2}>
+                                    {suggestions.map((suggestion) => (
+                                        <Tag
+                                            key={suggestion}
+                                            size="md"
+                                            rounded="full"
+                                            border="1px solid"
+                                            borderColor="var(--border)"
+                                            color="var(--foreground)"
+                                            cursor="pointer"
+                                            onClick={() => {
+                                                if (
+                                                    localCategories.includes(
+                                                        suggestion,
+                                                    )
+                                                )
+                                                    return;
+                                                setLocalCategories((prev) => [
+                                                    ...prev,
+                                                    suggestion,
+                                                ]);
+                                            }}
+                                            _hover={{
+                                                borderColor: "var(--accent)",
+                                                color: "var(--accent)",
+                                            }}
+                                        >
+                                            <TagLabel>{suggestion}</TagLabel>
+                                        </Tag>
+                                    ))}
+                                </Flex>
+                            </Box>
+                            <Button
+                                mt={4}
+                                w="full"
+                                bg="var(--accent)"
+                                color="var(--background)"
+                                _hover={{ opacity: 0.9 }}
+                                isDisabled={!canSave || saving}
+                                onClick={handleSave}
+                            >
+                                {saving ? "Saving…" : "Save categories"}
+                            </Button>
+                            <Box aria-live="polite">
+                                {status === "success" && (
+                                    <Text
+                                        mt={2}
+                                        fontSize="xs"
+                                        color="var(--accent)"
+                                    >
+                                        Categories updated.
+                                    </Text>
+                                )}
+                                {status === "error" && (
+                                    <Text mt={2} fontSize="xs" color="tomato">
+                                        Something went wrong—try again.
+                                    </Text>
+                                )}
+                            </Box>
+                        </Box>
+
+                        {receipt.msgId && (
+                            <Box>
+                                <Text
+                                    fontSize="xs"
+                                    textTransform="uppercase"
+                                    letterSpacing="0.2em"
+                                    color="var(--muted)"
+                                >
+                                    Gmail source
+                                </Text>
+                                <Text
+                                    as="a"
+                                    href={`https://mail.google.com/mail/u/0/#inbox/${receipt.msgId}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    color="var(--accent)"
+                                >
+                                    Open Gmail thread ↗
+                                </Text>
+                            </Box>
+                        )}
+
+                        <Box>
+                            <Text
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.2em"
+                                color="var(--muted)"
+                            >
+                                Notes
+                            </Text>
+                            <Textarea
+                                mt={2}
+                                placeholder="Add reviewer notes"
+                                defaultValue={receipt.notes}
+                                rows={4}
+                                borderColor="var(--border)"
+                                bg="var(--surface-soft)"
+                                color="var(--foreground)"
+                                _focus={{
+                                    borderColor: "var(--accent)",
+                                    boxShadow: "none",
+                                }}
+                            />
+                        </Box>
+                    </Stack>
+                </DrawerBody>
+            </DrawerContent>
+        </Drawer>
     );
 }

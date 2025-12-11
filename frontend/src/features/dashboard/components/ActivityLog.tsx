@@ -1,3 +1,6 @@
+import { Badge, Box, Flex, Stack, Text } from "@chakra-ui/react";
+import { formatDateTime } from "@/lib/dates";
+
 export type ActivityEvent = {
     id: string;
     title: string;
@@ -11,54 +14,100 @@ type ActivityLogProps = {
 
 export function ActivityLog({ entries }: ActivityLogProps) {
     return (
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-sm text-slate-200 shadow-inner">
-            <header className="mb-4 flex items-center justify-between">
-                <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">
+        <Box
+            border="1px solid"
+            borderColor="var(--border)"
+            bg="var(--surface)"
+            rounded="2xl"
+            p={5}
+            color="var(--foreground)"
+            fontSize="sm"
+            boxShadow="var(--shadow)"
+        >
+            <Flex mb={4} align="center" justify="space-between">
+                <Box>
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.1em"
+                        color="var(--muted)"
+                    >
                         Activity
-                    </p>
-                    <h3 className="text-base font-semibold text-white">
+                    </Text>
+                    <Text as="h3" fontWeight="semibold" fontSize="md">
                         System timeline
-                    </h3>
-                </div>
-                <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                    </Text>
+                </Box>
+                <Badge
+                    px={3}
+                    py={1}
+                    rounded="full"
+                    border="1px solid"
+                    borderColor="var(--border)"
+                    bg="var(--surface-soft)"
+                    color="var(--muted)"
+                    fontSize="xs"
+                >
                     {entries.length} events
-                </span>
-            </header>
+                </Badge>
+            </Flex>
+
             {entries.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-800/70 bg-slate-950/50 p-4 text-center text-xs text-slate-500">
+                <Box
+                    rounded="xl"
+                    border="1px dashed"
+                    borderColor="var(--border)"
+                    bg="var(--surface-soft)"
+                    p={4}
+                    textAlign="center"
+                    fontSize="xs"
+                    color="var(--muted)"
+                >
                     No ingest activity yet. Connect Gmail and run a sync to
                     populate this timeline.
-                </div>
+                </Box>
             ) : (
-                <ol className="space-y-4">
+                <Stack as="ol" spacing={4}>
                     {entries.map((event, idx) => (
-                        <li key={event.id} className="relative pl-5">
+                        <Box key={event.id} position="relative" pl={5} as="li">
                             {idx !== entries.length - 1 && (
-                                <span className="absolute left-[8px] top-4 h-full w-px bg-slate-800" />
+                                <Box
+                                    position="absolute"
+                                    left="8px"
+                                    top="16px"
+                                    h="full"
+                                    w="1px"
+                                    bg="var(--border)"
+                                />
                             )}
-                            <span className="absolute left-0 top-1 h-2.5 w-2.5 rounded-full bg-emerald-400/80 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-                            <div className="flex flex-col gap-1">
-                                <p className="text-sm font-semibold text-white">
+                            <Box
+                                position="absolute"
+                                left={0}
+                                top={1}
+                                w="10px"
+                                h="10px"
+                                rounded="full"
+                                bg="rgba(52,211,153,0.8)"
+                                boxShadow="0 0 6px rgba(16,185,129,0.8)"
+                            />
+                            <Stack spacing={1}>
+                                <Text fontWeight="semibold" fontSize="sm">
                                     {event.title}
-                                </p>
-                                <p className="text-slate-400">{event.detail}</p>
-                                <p className="text-xs text-slate-500">
-                                    {new Date(event.timestamp).toLocaleString(
-                                        undefined,
-                                        {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                            month: "short",
-                                            day: "numeric",
-                                        },
-                                    )}
-                                </p>
-                            </div>
-                        </li>
+                                </Text>
+                                <Text color="var(--muted)">{event.detail}</Text>
+                                <Text fontSize="xs" color="var(--muted)">
+                                    {formatDateTime(event.timestamp, {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                        month: "short",
+                                        day: "numeric",
+                                    })}
+                                </Text>
+                            </Stack>
+                        </Box>
                     ))}
-                </ol>
+                </Stack>
             )}
-        </section>
+        </Box>
     );
 }

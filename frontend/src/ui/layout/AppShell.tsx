@@ -1,9 +1,26 @@
 "use client";
 
 import { useCurrency } from "@/context/currency-context";
-import { useTheme } from "@/context/theme-context";
 import type { DateRange } from "@/types";
+import {
+    Badge,
+    Box,
+    Button,
+    Container,
+    Flex,
+    Grid,
+    HStack,
+    Heading,
+    IconButton,
+    Select,
+    Stack,
+    Text,
+    VStack,
+} from "@chakra-ui/react";
 import { useMemo, useState } from "react";
+import { CloseIcon, HamburgerIcon } from "@chakra-ui/icons";
+import { SunIcon, MoonIcon } from "@chakra-ui/icons";
+import { useThemeMode } from "@/context/theme-mode-context";
 
 type SectionKey = "transactions" | "settings";
 
@@ -55,7 +72,7 @@ export function AppShell({
     children,
 }: AppShellProps) {
     const { currency, setCurrency, supported } = useCurrency();
-    const { theme, toggleTheme } = useTheme();
+    const { mode, toggle } = useThemeMode();
     const initials = useMemo(
         () =>
             email
@@ -70,137 +87,292 @@ export function AppShell({
     const [navOpen, setNavOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] lg:grid lg:grid-cols-[240px_1fr]">
+        <Grid
+            minH="100vh"
+            templateColumns={{ base: "1fr", lg: "240px 1fr" }}
+            bg="bg.base"
+            color="text.primary"
+        >
             {navOpen && (
-                <button
-                    type="button"
-                    aria-label="Close navigation"
-                    className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+                <Box
+                    position="fixed"
+                    inset={0}
+                    zIndex={30}
+                    bg="blackAlpha.600"
+                    display={{ base: "block", lg: "none" }}
                     onClick={() => setNavOpen(false)}
                 />
             )}
-            <aside
-                className={`fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-slate-900/80 bg-slate-950/95 px-6 py-8 transition-transform duration-200 lg:static lg:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+
+            <Box
+                as="aside"
+                position={{ base: "fixed", lg: "relative" }}
+                insetY={0}
+                left={0}
+                zIndex={40}
+                w="240px"
+                borderRight="1px solid"
+                borderColor="border.subtle"
+                bg="bg.elevated"
+                px={6}
+                py={8}
+                transform={{
+                    base: navOpen ? "translateX(0)" : "translateX(-100%)",
+                    lg: "translateX(0)",
+                }}
+                transition="transform 0.2s ease"
+                display="flex"
+                flexDirection="column"
+                gap={6}
             >
-                <div className="mb-10 flex items-center gap-3">
-                    <div className="rounded-2xl bg-emerald-400/10 p-3 text-emerald-300">
+                <HStack spacing={3}>
+                    <Box
+                        rounded="2xl"
+                        bg="accent.primary"
+                        color="bg.base"
+                        px={3}
+                        py={2}
+                        fontWeight="bold"
+                    >
                         ⧉
-                    </div>
-                    <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                            FinOS
-                        </p>
-                        <h1 className="text-xl font-semibold text-white">
-                            Command
-                        </h1>
-                    </div>
-                </div>
-                <nav className="space-y-2 text-sm text-slate-400">
-                    {navItems.map((item) => (
-                        <button
-                            key={item.key}
-                            onClick={() => onSectionChange(item.key)}
-                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 transition-colors ${
-                                activeSection === item.key
-                                    ? "bg-slate-900 text-white"
-                                    : "hover:bg-slate-900/50 hover:text-white"
-                            }`}
-                            type="button"
+                    </Box>
+                    <Box>
+                        <Text
+                            fontSize="xs"
+                            textTransform="uppercase"
+                            letterSpacing="0.2em"
+                            color="text.muted"
                         >
-                            <span>{item.icon}</span>
+                            FinOS
+                        </Text>
+                        <Heading size="md" color="text.primary">
+                            Command
+                        </Heading>
+                    </Box>
+                </HStack>
+
+                <VStack
+                    align="stretch"
+                    spacing={2}
+                    fontSize="sm"
+                    color="text.muted"
+                >
+                    {navItems.map((item) => (
+                        <Button
+                            key={item.key}
+                            onClick={() => {
+                                onSectionChange(item.key);
+                                setNavOpen(false);
+                            }}
+                            justifyContent="flex-start"
+                            gap={3}
+                            variant="ghost"
+                            bg={
+                                activeSection === item.key
+                                    ? "bg.subtle"
+                                    : "transparent"
+                            }
+                            _hover={{ bg: "bg.subtle" }}
+                            color={
+                                activeSection === item.key
+                                    ? "text.primary"
+                                    : "text.muted"
+                            }
+                        >
+                            <Text as="span">{item.icon}</Text>
                             {item.label}
-                        </button>
+                        </Button>
                     ))}
-                </nav>
-                <div className="mt-auto space-y-3 text-xs text-slate-400">
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                                    Theme
-                                </p>
-                                <p className="text-sm text-white">
-                                    {theme === "dark" ? "Dark" : "Light"} mode
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={toggleTheme}
-                                className="rounded-full border border-slate-800 bg-slate-950 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/60 hover:text-emerald-200"
-                            >
-                                Toggle
-                            </button>
-                        </div>
-                    </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p className="font-semibold text-white">
+                </VStack>
+
+                <VStack
+                    mt="auto"
+                    align="stretch"
+                    spacing={3}
+                    fontSize="xs"
+                    color="text.muted"
+                >
+                    <Box
+                        rounded="2xl"
+                        border="1px solid"
+                        borderColor="border.subtle"
+                        bg="bg.subtle"
+                        p={4}
+                    >
+                        <Text fontWeight="semibold" color="text.primary">
                             Connected Gmail
-                        </p>
-                        <p className="truncate text-xs text-slate-400">
+                        </Text>
+                        <Text noOfLines={1} fontSize="xs" color="text.muted">
                             {email}
-                        </p>
-                        <button
+                        </Text>
+                        <Button
+                            mt={3}
+                            w="full"
+                            variant="outline"
+                            borderColor="border.subtle"
+                            bg="bg.elevated"
+                            color="text.muted"
+                            _hover={{
+                                borderColor: "accent.primary",
+                                color: "text.primary",
+                            }}
                             onClick={onLogout}
-                            className="mt-3 w-full rounded-xl border border-slate-800/60 bg-slate-950/40 px-3 py-2 text-xs text-slate-300 transition hover:border-slate-600 hover:text-white"
-                            type="button"
                         >
                             Sign out
-                        </button>
-                    </div>
-                    <p>Version 0.2.0 · Secure OAuth via Google</p>
-                </div>
-            </aside>
+                        </Button>
+                    </Box>
+                    <Text>Version 0.2.0 · Secure OAuth via Google</Text>
+                </VStack>
+            </Box>
 
-            <main className="flex flex-col">
-                <header className="sticky top-0 z-20 border-b border-slate-900/60 bg-slate-950/80 px-4 py-4 backdrop-blur md:px-6 lg:px-10">
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">
-                                {sectionMeta[activeSection].kicker}
-                            </p>
-                            <h2 className="text-xl font-semibold text-white sm:text-2xl">
-                                {sectionMeta[activeSection].title}
-                            </h2>
-                            <p className="text-sm text-slate-400">
-                                {sectionMeta[activeSection].description}
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                type="button"
-                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-xl text-white lg:hidden"
-                                onClick={() => setNavOpen((prev) => !prev)}
-                                aria-label="Toggle navigation"
+            <Grid
+                as="main"
+                templateRows="auto 1fr"
+                minH="100vh"
+                position="relative"
+            >
+                <Container
+                    as="header"
+                    position="sticky"
+                    top={0}
+                    zIndex={20}
+                    maxW="container.xl"
+                    borderBottom="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.base"
+                    backdropFilter="blur(12px)"
+                    px={{ base: 4, md: 6, lg: 10 }}
+                    py={4}
+                    boxShadow="sm"
+                >
+                    <Flex justify="space-between" gap={4} align="center">
+                        <Box>
+                            <Text
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.3em"
+                                color="accent.primary"
                             >
-                                ☰
-                            </button>
+                                {sectionMeta[activeSection].kicker}
+                            </Text>
+                            <Heading size="lg" color="text.primary">
+                                {sectionMeta[activeSection].title}
+                            </Heading>
+                            <Text fontSize="sm" color="text.muted">
+                                {sectionMeta[activeSection].description}
+                            </Text>
+                        </Box>
+                        <HStack spacing={3}>
+                            <IconButton
+                                aria-label="Toggle navigation"
+                                icon={
+                                    navOpen ? <CloseIcon /> : <HamburgerIcon />
+                                }
+                                display={{ base: "flex", lg: "none" }}
+                                onClick={() => setNavOpen((prev) => !prev)}
+                                border="1px solid"
+                                borderColor="border.subtle"
+                                bg="bg.subtle"
+                                color="text.primary"
+                            />
+                            <IconButton
+                                aria-label="Toggle theme"
+                                icon={
+                                    mode === "light" ? (
+                                        <MoonIcon />
+                                    ) : (
+                                        <SunIcon />
+                                    )
+                                }
+                                variant="ghost"
+                                onClick={toggle}
+                                border="1px solid"
+                                borderColor="border.subtle"
+                                bg="bg.subtle"
+                                color="text.primary"
+                                _hover={{
+                                    bg: "bg.elevated",
+                                    color: "accent.primary",
+                                }}
+                            />
                             {activeSection === "transactions" && (
-                                <div className="hidden items-center gap-3 lg:flex">
-                                    <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
+                                <HStack
+                                    spacing={3}
+                                    display={{ base: "none", lg: "flex" }}
+                                >
+                                    <Badge
+                                        px={4}
+                                        py={2}
+                                        rounded="full"
+                                        border="1px solid"
+                                        borderColor="border.subtle"
+                                        bg="bg.subtle"
+                                        color="text.muted"
+                                        fontWeight="medium"
+                                        fontSize="xs"
+                                    >
                                         {email}
-                                    </span>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 p-1 text-sm text-slate-400">
+                                    </Badge>
+                                    <HStack spacing={3}>
+                                        <HStack
+                                            spacing={1}
+                                            rounded="full"
+                                            border="1px solid"
+                                            borderColor="border.subtle"
+                                            bg="bg.subtle"
+                                            p={1}
+                                            fontSize="sm"
+                                            color="text.muted"
+                                        >
                                             {rangeOptions.map((opt) => (
-                                                <button
+                                                <Button
                                                     key={opt.value}
-                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    rounded="full"
+                                                    px={3}
+                                                    py={1}
+                                                    bg={
+                                                        opt.value === dateRange
+                                                            ? "accent.primary"
+                                                            : "transparent"
+                                                    }
+                                                    color={
+                                                        opt.value === dateRange
+                                                            ? "bg.base"
+                                                            : "text.primary"
+                                                    }
+                                                    _hover={{
+                                                        bg:
+                                                            opt.value ===
+                                                            dateRange
+                                                                ? "accent.primary"
+                                                                : "bg.elevated",
+                                                    }}
                                                     onClick={() =>
                                                         onRangeChange(opt.value)
                                                     }
-                                                    className={`rounded-full px-3 py-1 transition ${
-                                                        opt.value === dateRange
-                                                            ? "bg-emerald-400/20 text-white"
-                                                            : "hover:bg-slate-800"
-                                                    }`}
                                                 >
                                                     {opt.label}
-                                                </button>
+                                                </Button>
                                             ))}
-                                        </div>
-                                        <label className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs uppercase tracking-widest text-slate-400">
-                                            Currency
-                                            <select
+                                        </HStack>
+                                        <HStack
+                                            spacing={2}
+                                            rounded="full"
+                                            border="1px solid"
+                                            borderColor="border.subtle"
+                                            bg="bg.subtle"
+                                            px={3}
+                                            py={1.5}
+                                            fontSize="xs"
+                                            textTransform="uppercase"
+                                            letterSpacing="0.2em"
+                                            color="text.muted"
+                                        >
+                                            <Text>Currency</Text>
+                                            <Select
+                                                variant="unstyled"
                                                 value={currency}
                                                 onChange={(event) =>
                                                     setCurrency(
@@ -208,7 +380,7 @@ export function AppShell({
                                                             .value as (typeof supported)[number],
                                                     )
                                                 }
-                                                className="bg-transparent text-white outline-none"
+                                                color="text.primary"
                                             >
                                                 {supported.map((code) => (
                                                     <option
@@ -218,47 +390,115 @@ export function AppShell({
                                                         {code}
                                                     </option>
                                                 ))}
-                                            </select>
-                                        </label>
-                                    </div>
-                                    <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5">
-                                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400/20 text-sm text-emerald-300">
+                                            </Select>
+                                        </HStack>
+                                    </HStack>
+                                    <HStack
+                                        spacing={2}
+                                        rounded="full"
+                                        border="1px solid"
+                                        borderColor="border.subtle"
+                                        bg="bg.subtle"
+                                        px={3}
+                                        py={1.5}
+                                    >
+                                        <Flex
+                                            align="center"
+                                            justify="center"
+                                            w={7}
+                                            h={7}
+                                            rounded="full"
+                                            bg="accent.primary"
+                                            color="bg.base"
+                                            fontSize="sm"
+                                        >
                                             {initials}
-                                        </span>
-                                        <div>
-                                            <p className="text-xs text-slate-400">
+                                        </Flex>
+                                        <Box>
+                                            <Text
+                                                fontSize="xs"
+                                                color="text.muted"
+                                            >
                                                 Signed in
-                                            </p>
-                                            <p className="text-sm text-white">
+                                            </Text>
+                                            <Text
+                                                fontSize="sm"
+                                                color="text.primary"
+                                            >
                                                 {email}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+                                            </Text>
+                                        </Box>
+                                    </HStack>
+                                </HStack>
                             )}
-                        </div>
-                    </div>
+                        </HStack>
+                    </Flex>
+
                     {activeSection === "transactions" && (
-                        <div className="mt-4 flex flex-wrap items-center gap-3 lg:hidden">
-                            <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 p-1 text-sm text-slate-400">
+                        <Stack
+                            direction="row"
+                            spacing={3}
+                            mt={4}
+                            align="center"
+                            display={{ base: "flex", lg: "none" }}
+                            flexWrap="wrap"
+                        >
+                            <HStack
+                                spacing={1}
+                                rounded="full"
+                                border="1px solid"
+                                borderColor="border.subtle"
+                                bg="bg.subtle"
+                                p={1}
+                                fontSize="sm"
+                                color="text.muted"
+                            >
                                 {rangeOptions.map((opt) => (
-                                    <button
+                                    <Button
                                         key={opt.value}
-                                        type="button"
-                                        onClick={() => onRangeChange(opt.value)}
-                                        className={`rounded-full px-3 py-1 transition ${
+                                        size="sm"
+                                        variant="ghost"
+                                        rounded="full"
+                                        px={3}
+                                        py={1}
+                                        bg={
                                             opt.value === dateRange
-                                                ? "bg-emerald-400/20 text-white"
-                                                : "hover:bg-slate-800"
-                                        }`}
+                                                ? "accent.primary"
+                                                : "transparent"
+                                        }
+                                        color={
+                                            opt.value === dateRange
+                                                ? "bg.base"
+                                                : "text.primary"
+                                        }
+                                        _hover={{
+                                            bg:
+                                                opt.value === dateRange
+                                                    ? "accent.primary"
+                                                    : "bg.elevated",
+                                        }}
+                                        onClick={() => onRangeChange(opt.value)}
                                     >
                                         {opt.label}
-                                    </button>
+                                    </Button>
                                 ))}
-                            </div>
-                            <label className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs uppercase tracking-widest text-slate-400">
-                                Currency
-                                <select
+                            </HStack>
+                            <HStack
+                                spacing={2}
+                                rounded="full"
+                                border="1px solid"
+                                borderColor="border.subtle"
+                                bg="bg.subtle"
+                                px={3}
+                                py={1.5}
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.2em"
+                                color="text.muted"
+                            >
+                                <Text>Currency</Text>
+                                <Select
+                                    variant="unstyled"
                                     value={currency}
                                     onChange={(event) =>
                                         setCurrency(
@@ -266,25 +506,46 @@ export function AppShell({
                                                 .value as (typeof supported)[number],
                                         )
                                     }
-                                    className="bg-transparent text-white outline-none"
+                                    color="text.primary"
                                 >
                                     {supported.map((code) => (
                                         <option key={code} value={code}>
                                             {code}
                                         </option>
                                     ))}
-                                </select>
-                            </label>
-                            <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
+                                </Select>
+                            </HStack>
+                            <Badge
+                                px={4}
+                                py={2}
+                                rounded="full"
+                                border="1px solid"
+                                borderColor="border.subtle"
+                                bg="bg.subtle"
+                                color="text.muted"
+                                fontWeight="medium"
+                                fontSize="xs"
+                            >
                                 {email}
-                            </span>
-                        </div>
+                            </Badge>
+                        </Stack>
                     )}
-                </header>
-                <section className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
-                    {children}
-                </section>
-            </main>
-        </div>
+                </Container>
+
+                <Box
+                    as="section"
+                    flex="1"
+                    overflowY="auto"
+                    py={{ base: 6, lg: 8 }}
+                >
+                    <Container
+                        maxW="container.xl"
+                        px={{ base: 4, sm: 6, lg: 10 }}
+                    >
+                        {children}
+                    </Container>
+                </Box>
+            </Grid>
+        </Grid>
     );
 }

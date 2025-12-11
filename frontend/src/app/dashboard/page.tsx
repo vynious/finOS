@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "@/ui/layout/AppShell";
 import { SystemFeedback } from "@/ui/system/SystemFeedback";
+import { Box, Button, Flex, Stack, Text } from "@chakra-ui/react";
 
 import {
     ActivityLog,
@@ -32,7 +33,7 @@ type InlineNotice = {
     id: string;
     title: string;
     detail: string;
-    tone?: "info" | "success" | "warning" | "danger";
+    tone?: "info" | "success" | "warning" | "error";
 };
 
 const DEFAULT_RANGE: ReceiptFiltersType["range"] = "30d";
@@ -182,7 +183,7 @@ export default function DashboardPage() {
                 id: `categories-error-${Date.now()}`,
                 title: "Unable to save categories",
                 detail: "Please try again in a few seconds.",
-                tone: "danger",
+                tone: "error",
             });
         }
         return success;
@@ -202,31 +203,49 @@ export default function DashboardPage() {
 
     if (session.loading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-200">
+            <Box
+                minH="100vh"
+                bg="var(--background)"
+                color="var(--muted)"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+            >
                 Preparing FinOS…
-            </div>
+            </Box>
         );
     }
 
     if (!session.isAuthenticated || !session.email) {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-slate-950 text-center text-white">
-                <h1 className="text-4xl font-semibold">
+            <Flex
+                minH="100vh"
+                direction="column"
+                align="center"
+                justify="center"
+                gap={6}
+                bg="var(--background)"
+                color="var(--foreground)"
+                textAlign="center"
+                px={6}
+            >
+                <Text fontSize="4xl" fontWeight="semibold">
                     Connect Gmail to unlock FinOS
-                </h1>
-                <p className="max-w-xl text-slate-300">
+                </Text>
+                <Text maxW="xl" color="var(--muted)">
                     We authenticate with Google using PKCE and store tokens
                     securely in MongoDB. Click below to complete OAuth and
                     return to the dashboard.
-                </p>
-                <button
+                </Text>
+                <Button
                     onClick={session.connectGmail}
-                    className="rounded-full bg-emerald-400 px-6 py-3 font-semibold text-slate-900"
-                    type="button"
+                    bg="var(--accent)"
+                    color="var(--background)"
+                    _hover={{ opacity: 0.9 }}
                 >
                     Connect Gmail
-                </button>
-            </div>
+                </Button>
+            </Flex>
         );
     }
 
@@ -243,7 +262,7 @@ export default function DashboardPage() {
                 onSectionChange={(section) => setActiveSection(section)}
             >
                 {activeSection === "transactions" ? (
-                    <div className="space-y-6">
+                    <Stack spacing={6}>
                         {inlineNotice && (
                             <SystemFeedback notice={inlineNotice} />
                         )}
@@ -278,12 +297,12 @@ export default function DashboardPage() {
                             selectedId={selectedReceipt?.id}
                             onSelect={setSelectedReceipt}
                         />
-                    </div>
+                    </Stack>
                 ) : (
-                    <div className="space-y-6">
+                    <Stack spacing={6}>
                         <SettingsPanel email={session.email} />
                         <ActivityLog entries={activityEntries} />
-                    </div>
+                    </Stack>
                 )}
             </AppShell>
             {activeSection === "transactions" && (

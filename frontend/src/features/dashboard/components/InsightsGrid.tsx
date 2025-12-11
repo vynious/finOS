@@ -6,6 +6,16 @@ import type {
     InsightSummary,
     TimeSeriesPoint,
 } from "@/types";
+import {
+    Box,
+    Flex,
+    Grid,
+    GridItem,
+    SimpleGrid,
+    Stack,
+    Text,
+} from "@chakra-ui/react";
+import { formatDate } from "@/lib/dates";
 
 type InsightsGridProps = {
     summary: InsightSummary;
@@ -63,199 +73,311 @@ export function InsightsGrid({
 }: InsightsGridProps) {
     const { format, currency } = useCurrency();
     const rangeLabel = rangeLabels[range] ?? range;
-    return (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            <section className="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                    {
-                        label: "Total spend",
-                        value: format(summary.totalSpend, currency),
-                        badge: email
-                            ? `Account: ${email}`
-                            : "Connect Gmail to ingest",
-                    },
-                    {
-                        label: "Transactions",
-                        value: summary.txCount.toString(),
-                        badge:
-                            summary.txCount === 1
-                                ? "1 receipt this period"
-                                : `${summary.txCount} receipts ${rangeLabel}`,
-                    },
-                    {
-                        label: "Avg ticket",
-                        value: format(summary.avgTicket, currency),
-                        badge: `Average over ${rangeLabel}`,
-                    },
-                    {
-                        label: "Top merchant",
-                        value: summary.topMerchant?.name ?? "—",
-                        badge: summary.topMerchant
-                            ? format(summary.topMerchant.total, currency)
-                            : "No spend recorded",
-                    },
-                ].map((metric) => (
-                    <div
-                        key={metric.label}
-                        className="rounded-2xl border border-slate-900/60 bg-slate-950/60 px-5 py-4 shadow-inner"
-                    >
-                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                            {metric.label}
-                        </p>
-                        <p className="mt-2 text-3xl font-semibold text-white">
-                            {metric.value}
-                        </p>
-                        <p className="text-sm text-emerald-300">
-                            {metric.badge}
-                        </p>
-                    </div>
-                ))}
-            </section>
 
-            <article className="col-span-12 rounded-3xl border border-slate-900/60 bg-gradient-to-br from-slate-900/90 to-slate-950/70 p-6 lg:col-span-8">
-                <header className="mb-4 flex items-center justify-between text-sm">
-                    <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                            Spend over time
-                        </p>
-                        <h3 className="text-lg font-semibold text-white">
-                            Gmail-ingested receipts
-                        </h3>
-                    </div>
-                    <p className="text-slate-400">
-                        Brush to zoom · UTC aligned
-                    </p>
-                </header>
-                <svg
-                    viewBox="0 0 100 100"
-                    preserveAspectRatio="none"
-                    className="h-56 w-full text-emerald-300"
-                >
-                    <defs>
-                        <linearGradient
-                            id="areaGradient"
-                            x1="0"
-                            x2="0"
-                            y1="0"
-                            y2="1"
+    return (
+        <Grid templateColumns={{ base: "1fr", lg: "repeat(12, 1fr)" }} gap={6}>
+            <GridItem colSpan={12}>
+                <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} spacing={4}>
+                    {[
+                        {
+                            label: "Total spend",
+                            value: format(summary.totalSpend, currency),
+                            badge: email
+                                ? `Account: ${email}`
+                                : "Connect Gmail to ingest",
+                        },
+                        {
+                            label: "Transactions",
+                            value: summary.txCount.toString(),
+                            badge:
+                                summary.txCount === 1
+                                    ? "1 receipt this period"
+                                    : `${summary.txCount} receipts ${rangeLabel}`,
+                        },
+                        {
+                            label: "Avg ticket",
+                            value: format(summary.avgTicket, currency),
+                            badge: `Average over ${rangeLabel}`,
+                        },
+                        {
+                            label: "Top merchant",
+                            value: summary.topMerchant?.name ?? "—",
+                            badge: summary.topMerchant
+                                ? format(summary.topMerchant.total, currency)
+                                : "No spend recorded",
+                        },
+                    ].map((metric) => (
+                        <Box
+                            key={metric.label}
+                            rounded="2xl"
+                            border="1px solid"
+                            borderColor="border.subtle"
+                            bg="bg.elevated"
+                            px={5}
+                            py={4}
+                            boxShadow="var(--shadow)"
                         >
-                            <stop
-                                offset="0%"
-                                stopColor="#34d399"
-                                stopOpacity="0.5"
-                            />
-                            <stop
-                                offset="100%"
-                                stopColor="#34d399"
-                                stopOpacity="0"
-                            />
-                        </linearGradient>
-                    </defs>
-                    <path
-                        d={`${buildPath(series)} L 100,100 L 0,100 Z`}
-                        fill="url(#areaGradient)"
-                        stroke="none"
-                    />
-                    <path
-                        d={buildPath(series)}
-                        fill="none"
-                        stroke="#34d399"
-                        strokeWidth="2"
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                    />
-                </svg>
-                <div className="mt-4 flex justify-between text-xs text-slate-500">
-                    {series.slice(0, 4).map((point) => (
-                        <span key={point.date}>
-                            {new Date(point.date).toLocaleDateString(
-                                undefined,
-                                {
+                            <Text
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.2em"
+                                color="text.muted"
+                            >
+                                {metric.label}
+                            </Text>
+                            <Text
+                                mt={2}
+                                noOfLines={1}
+                                fontSize="2xl"
+                                fontWeight="semibold"
+                                color="text.primary"
+                            >
+                                {metric.value}
+                            </Text>
+                            <Text fontSize="sm" color="accent.primary">
+                                {metric.badge}
+                            </Text>
+                        </Box>
+                    ))}
+                </SimpleGrid>
+            </GridItem>
+
+            <GridItem colSpan={{ base: 12, lg: 8 }}>
+                <Box
+                    rounded="3xl"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.elevated"
+                    p={6}
+                    boxShadow="var(--shadow)"
+                >
+                    <Flex
+                        mb={4}
+                        align="center"
+                        justify="space-between"
+                        fontSize="sm"
+                    >
+                        <Box>
+                            <Text
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.2em"
+                                color="text.muted"
+                            >
+                                Spend over time
+                            </Text>
+                            <Text
+                                as="h3"
+                                fontSize="lg"
+                                fontWeight="semibold"
+                                color="text.primary"
+                            >
+                                Gmail-ingested receipts
+                            </Text>
+                        </Box>
+                        <Text color="text.muted">
+                            Brush to zoom · UTC aligned
+                        </Text>
+                    </Flex>
+                    <Box
+                        as="svg"
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        h="14rem"
+                        w="full"
+                        color="var(--accent)"
+                    >
+                        <defs>
+                            <linearGradient
+                                id="areaGradient"
+                                x1="0"
+                                x2="0"
+                                y1="0"
+                                y2="1"
+                            >
+                                <stop
+                                    offset="0%"
+                                    stopColor="#34d399"
+                                    stopOpacity="0.5"
+                                />
+                                <stop
+                                    offset="100%"
+                                    stopColor="#34d399"
+                                    stopOpacity="0"
+                                />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            d={`${buildPath(series)} L 100,100 L 0,100 Z`}
+                            fill="url(#areaGradient)"
+                            stroke="none"
+                        />
+                        <path
+                            d={buildPath(series)}
+                            fill="none"
+                            stroke="#34d399"
+                            strokeWidth="2"
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                        />
+                    </Box>
+                    <Flex
+                        mt={4}
+                        justify="space-between"
+                        fontSize="xs"
+                        color="text.muted"
+                    >
+                        {series.slice(0, 4).map((point) => (
+                            <Text as="span" key={point.date}>
+                                {formatDate(point.date, {
                                     month: "short",
                                     day: "numeric",
-                                },
-                            )}
-                        </span>
-                    ))}
-                </div>
-            </article>
-
-            <article className="col-span-12 rounded-3xl border border-slate-900/60 bg-slate-950/70 p-6 lg:col-span-4">
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                    Category mix
-                </p>
-                <div className="mt-4 flex flex-col items-center gap-4">
-                    <div
-                        className="relative h-40 w-40 rounded-full"
-                        style={{ backgroundImage: donutBg(categories) }}
-                    >
-                        <div className="absolute inset-5 rounded-full bg-slate-950/95 text-center">
-                            <p className="mt-6 text-xs uppercase text-slate-500">
-                                Top
-                            </p>
-                            <p className="text-lg font-semibold text-white">
-                                {categories[0]?.label ?? "—"}
-                            </p>
-                            <p className="text-sm text-slate-400">
-                                {categories[0]
-                                    ? `${categories[0].percent.toFixed(1)}%`
-                                    : "0%"}
-                            </p>
-                        </div>
-                    </div>
-                    <ul className="w-full space-y-2 text-sm">
-                        {categories.slice(0, 4).map((slice, idx) => (
-                            <li
-                                key={slice.label}
-                                className="flex items-center justify-between"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className="h-2 w-2 rounded-full"
-                                        style={{
-                                            backgroundColor: [
-                                                "#34d399",
-                                                "#60a5fa",
-                                                "#fbbf24",
-                                                "#f472b6",
-                                            ][idx % 4],
-                                        }}
-                                    />
-                                    <span>{slice.label}</span>
-                                </div>
-                                <span className="text-slate-400">
-                                    {slice.percent.toFixed(1)}%
-                                </span>
-                            </li>
+                                })}
+                            </Text>
                         ))}
-                    </ul>
-                </div>
-            </article>
+                    </Flex>
+                </Box>
+            </GridItem>
 
-            <article className="col-span-12 rounded-3xl border border-slate-900/60 bg-slate-950/60 p-6">
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                    Anomaly alerts
-                </p>
-                <div className="mt-4 space-y-3">
-                    {anomalies.length ? (
-                        anomalies.map((alert) => (
-                            <div
-                                key={alert.id}
-                                className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+            <GridItem colSpan={{ base: 12, lg: 4 }}>
+                <Box
+                    rounded="3xl"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.elevated"
+                    p={6}
+                    boxShadow="var(--shadow)"
+                >
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.2em"
+                        color="text.muted"
+                    >
+                        Category mix
+                    </Text>
+                    <Stack mt={4} spacing={4} align="center">
+                        <Box
+                            position="relative"
+                            w="10rem"
+                            h="10rem"
+                            rounded="full"
+                            style={{ backgroundImage: donutBg(categories) }}
+                        >
+                            <Box
+                                position="absolute"
+                                inset={5}
+                                rounded="full"
+                                bg="var(--surface-soft)"
+                                textAlign="center"
                             >
-                                <p className="font-semibold">
-                                    {alert.merchant}
-                                </p>
-                                <p>{alert.description}</p>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-sm text-slate-400">
-                            No spikes detected for the selected window.
-                        </p>
-                    )}
-                </div>
-            </article>
-        </div>
+                                <Text
+                                    mt={6}
+                                    fontSize="xs"
+                                    textTransform="uppercase"
+                                    color="var(--muted)"
+                                >
+                                    Top
+                                </Text>
+                                <Text
+                                    fontSize="lg"
+                                    fontWeight="semibold"
+                                    color="var(--foreground)"
+                                >
+                                    {categories[0]?.label ?? "—"}
+                                </Text>
+                                <Text fontSize="sm" color="var(--muted)">
+                                    {categories[0]
+                                        ? `${categories[0].percent.toFixed(1)}%`
+                                        : "0%"}
+                                </Text>
+                            </Box>
+                        </Box>
+                        <Stack
+                            as="ul"
+                            spacing={2}
+                            w="full"
+                            fontSize="sm"
+                            color="text.primary"
+                        >
+                            {categories.slice(0, 4).map((slice, idx) => (
+                                <Flex
+                                    as="li"
+                                    key={slice.label}
+                                    align="center"
+                                    justify="space-between"
+                                >
+                                    <Flex align="center" gap={2}>
+                                        <Box
+                                            w={2}
+                                            h={2}
+                                            rounded="full"
+                                            bg={
+                                                [
+                                                    "#34d399",
+                                                    "#60a5fa",
+                                                    "#fbbf24",
+                                                    "#f472b6",
+                                                ][idx % 4]
+                                            }
+                                        />
+                                        <Text>{slice.label}</Text>
+                                    </Flex>
+                                    <Text color="var(--muted)">
+                                        {slice.percent.toFixed(1)}%
+                                    </Text>
+                                </Flex>
+                            ))}
+                        </Stack>
+                    </Stack>
+                </Box>
+            </GridItem>
+
+            <GridItem colSpan={12}>
+                <Box
+                    rounded="3xl"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.elevated"
+                    p={6}
+                    boxShadow="var(--shadow)"
+                >
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.2em"
+                        color="text.muted"
+                    >
+                        Anomaly alerts
+                    </Text>
+                    <Stack mt={4} spacing={3}>
+                        {anomalies.length ? (
+                            anomalies.map((alert) => (
+                                <Box
+                                    key={alert.id}
+                                    rounded="2xl"
+                                    border="1px solid"
+                                    borderColor="rgba(245, 158, 11, 0.4)"
+                                    bg="rgba(245, 158, 11, 0.15)"
+                                    px={4}
+                                    py={3}
+                                    fontSize="sm"
+                                    color="var(--foreground)"
+                                >
+                                    <Text fontWeight="semibold">
+                                        {alert.merchant}
+                                    </Text>
+                                    <Text>{alert.description}</Text>
+                                </Box>
+                            ))
+                        ) : (
+                            <Text fontSize="sm" color="var(--muted)">
+                                No spikes detected for the selected window.
+                            </Text>
+                        )}
+                    </Stack>
+                </Box>
+            </GridItem>
+        </Grid>
     );
 }

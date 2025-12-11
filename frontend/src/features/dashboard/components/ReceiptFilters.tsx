@@ -1,6 +1,19 @@
 "use client";
 
+import { useMemo } from "react";
+
 import type { DateRange, ReceiptFilters } from "@/types";
+import {
+    Badge,
+    Box,
+    Button,
+    Flex,
+    HStack,
+    Input,
+    Select,
+    Stack,
+    Text,
+} from "@chakra-ui/react";
 
 type ReceiptFiltersProps = {
     filters: ReceiptFilters;
@@ -22,71 +35,173 @@ export function ReceiptFilters({
     onChange,
     onReset,
 }: ReceiptFiltersProps) {
+    const sortedCategories = useMemo(
+        () => [...categories].sort((a, b) => a.localeCompare(b)),
+        [categories],
+    );
+
     return (
-        <section className="space-y-4 rounded-2xl border border-slate-900/60 bg-slate-950/60 p-4 text-sm text-slate-300">
-            <header className="flex flex-wrap items-center gap-3">
-                <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+        <Box
+            rounded="2xl"
+            border="1px solid"
+            borderColor="border.subtle"
+            bg="bg.elevated"
+            p={5}
+            color="text.primary"
+            fontSize="sm"
+            boxShadow="var(--shadow)"
+        >
+            <Flex
+                align="center"
+                gap={3}
+                wrap="wrap"
+                justify="space-between"
+                mb={4}
+            >
+                <Box>
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.2em"
+                        color="text.muted"
+                    >
                         Filters
-                    </p>
-                    <p className="text-slate-300">
+                    </Text>
+                    <Text>
                         Viewing receipts for{" "}
-                        <span className="text-white">{filters.email}</span>
-                    </p>
-                </div>
-                <button
-                    type="button"
+                        <Text as="span" fontWeight="semibold">
+                            {filters.email}
+                        </Text>
+                    </Text>
+                </Box>
+                <Button
                     onClick={onReset}
-                    className="ml-auto rounded-xl border border-slate-800 px-4 py-2 font-semibold text-white transition hover:border-emerald-400/60 hover:text-emerald-200"
+                    variant="outline"
+                    borderColor="border.subtle"
+                    bg="bg.subtle"
+                    color="text.primary"
+                    _hover={{
+                        borderColor: "accent.primary",
+                        color: "accent.primary",
+                    }}
                 >
                     Reset all
-                </button>
-            </header>
-            <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 p-1 text-xs uppercase tracking-widest text-slate-400">
+                </Button>
+            </Flex>
+
+            <HStack spacing={3} align="center" wrap="wrap" mb={4}>
+                <HStack
+                    spacing={1}
+                    rounded="full"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.subtle"
+                    p={1}
+                    fontSize="xs"
+                    textTransform="uppercase"
+                    letterSpacing="0.2em"
+                    color="text.muted"
+                >
                     {rangeOptions.map((opt) => (
-                        <button
+                        <Button
                             key={opt.value}
-                            type="button"
-                            aria-pressed={filters.range === opt.value}
+                            size="sm"
+                            variant="ghost"
+                            rounded="full"
+                            px={3}
+                            py={1}
+                            bg={
+                                opt.value === filters.range
+                                    ? "accent.primary"
+                                    : "transparent"
+                            }
+                            color={
+                                opt.value === filters.range
+                                    ? "bg.base"
+                                    : "text.primary"
+                            }
+                            _hover={{
+                                bg:
+                                    opt.value === filters.range
+                                        ? "accent.primary"
+                                        : "bg.elevated",
+                            }}
                             onClick={() =>
                                 onChange({ ...filters, range: opt.value })
                             }
-                            className={`rounded-full px-3 py-1 transition ${
-                                opt.value === filters.range
-                                    ? "bg-emerald-400/20 text-white"
-                                    : "hover:bg-slate-800"
-                            }`}
                         >
                             {opt.label}
-                        </button>
+                        </Button>
                     ))}
-                </div>
-                <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-1.5 text-xs text-slate-300">
+                </HStack>
+                <Badge
+                    rounded="full"
+                    px={4}
+                    py={1.5}
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.subtle"
+                    color="text.primary"
+                >
                     {filters.email}
-                </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-                <label className="flex flex-1 items-center gap-2 rounded-xl border border-slate-900 bg-slate-900/50 px-3 py-2">
-                    <span className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                </Badge>
+            </HStack>
+
+            <Stack
+                spacing={4}
+                direction={{ base: "column", md: "row" }}
+                flexWrap="wrap"
+            >
+                <HStack
+                    flex="1"
+                    spacing={3}
+                    rounded="xl"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.subtle"
+                    px={4}
+                    py={3}
+                >
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.3em"
+                        color="text.muted"
+                    >
                         Search
-                    </span>
-                    <input
-                        type="search"
+                    </Text>
+                    <Input
+                        variant="unstyled"
                         value={filters.search ?? ""}
                         onChange={(event) =>
                             onChange({ ...filters, search: event.target.value })
                         }
                         placeholder="Merchant, issuer, notes"
-                        className="flex-1 bg-transparent text-white outline-none placeholder:text-slate-500"
+                        color="text.primary"
+                        _placeholder={{ color: "text.muted" }}
                         aria-label="Search receipts"
                     />
-                </label>
-                <label className="flex items-center gap-2 rounded-xl border border-slate-900 bg-slate-900/50 px-3 py-2">
-                    <span className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                </HStack>
+
+                <HStack
+                    spacing={3}
+                    rounded="xl"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.subtle"
+                    px={4}
+                    py={3}
+                >
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.3em"
+                        color="text.muted"
+                    >
                         Category
-                    </span>
-                    <select
+                    </Text>
+                    <Select
+                        variant="unstyled"
                         value={filters.category ?? ""}
                         onChange={(event) =>
                             onChange({
@@ -94,25 +209,40 @@ export function ReceiptFilters({
                                 category: event.target.value || undefined,
                             })
                         }
-                        className="bg-transparent text-white outline-none"
+                        color="text.primary"
                         aria-label="Filter by category"
                     >
                         <option value="">All</option>
-                        {categories.map((category) => (
+                        {sortedCategories.map((category) => (
                             <option key={category} value={category}>
                                 {category}
                             </option>
                         ))}
-                    </select>
-                </label>
-                <label className="flex items-center gap-2 rounded-xl border border-slate-900 bg-slate-900/50 px-3 py-2">
-                    <span className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                    </Select>
+                </HStack>
+
+                <HStack
+                    spacing={3}
+                    rounded="xl"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    bg="bg.subtle"
+                    px={4}
+                    py={3}
+                >
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.3em"
+                        color="text.muted"
+                    >
                         Amount
-                    </span>
-                    <input
+                    </Text>
+                    <Input
                         type="number"
-                        inputMode="numeric"
                         min={0}
+                        w="20"
+                        variant="unstyled"
                         placeholder="Min"
                         value={filters.minAmount ?? ""}
                         onChange={(event) =>
@@ -123,14 +253,16 @@ export function ReceiptFilters({
                                     : undefined,
                             })
                         }
-                        className="w-20 bg-transparent text-white outline-none placeholder:text-slate-500"
+                        color="text.primary"
+                        _placeholder={{ color: "text.muted" }}
                         aria-label="Minimum amount"
                     />
-                    <span className="text-slate-600">—</span>
-                    <input
+                    <Text color="text.muted">—</Text>
+                    <Input
                         type="number"
-                        inputMode="numeric"
                         min={0}
+                        w="20"
+                        variant="unstyled"
                         placeholder="Max"
                         value={filters.maxAmount ?? ""}
                         onChange={(event) =>
@@ -141,11 +273,12 @@ export function ReceiptFilters({
                                     : undefined,
                             })
                         }
-                        className="w-20 bg-transparent text-white outline-none placeholder:text-slate-500"
+                        color="text.primary"
+                        _placeholder={{ color: "text.muted" }}
                         aria-label="Maximum amount"
                     />
-                </label>
-            </div>
-        </section>
+                </HStack>
+            </Stack>
+        </Box>
     );
 }

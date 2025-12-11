@@ -1,25 +1,30 @@
+// Client component because Chakra UI primitives rely on browser APIs.
+"use client";
+
+import { Alert, AlertDescription, AlertTitle } from "@chakra-ui/react";
+
 type Feedback = {
     id: string;
     title: string;
     detail: string;
-    tone?: "info" | "success" | "warning" | "danger";
+    tone?: "info" | "success" | "warning" | "error";
 };
 
 export function SystemFeedback({ notice }: { notice?: Feedback }) {
     if (!notice) return null;
-    const palette: Record<NonNullable<Feedback["tone"]>, string> = {
-        info: "border-sky-400/40 bg-sky-500/10 text-sky-200",
-        success: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200",
-        warning: "border-amber-400/40 bg-amber-500/10 text-amber-200",
-        danger: "border-rose-400/40 bg-rose-500/10 text-rose-200",
-    };
-    const tone = notice.tone ?? "info";
+
     return (
-        <div
-            className={`rounded-2xl border px-4 py-3 text-sm shadow-inner ${palette[tone]}`}
+        <Alert
+            status={notice.tone ?? "info"}
+            variant="subtle"
+            rounded="2xl"
+            borderWidth="1px"
+            borderColor="var(--border)"
+            bg="var(--surface)"
+            color="var(--foreground)"
         >
-            <p className="font-semibold">{notice.title}</p>
-            <p>{notice.detail}</p>
-        </div>
+            <AlertTitle fontWeight="semibold">{notice.title}</AlertTitle>
+            <AlertDescription>{notice.detail}</AlertDescription>
+        </Alert>
     );
 }

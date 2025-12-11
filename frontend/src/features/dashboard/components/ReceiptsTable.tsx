@@ -5,6 +5,21 @@ import { useCallback, useMemo } from "react";
 import { useCurrency } from "@/context/currency-context";
 import type { CurrencyCode } from "@/lib/config";
 import type { Receipt } from "@/types";
+import {
+    Badge,
+    Box,
+    Flex,
+    Stack,
+    Table,
+    TableContainer,
+    Tbody,
+    Td,
+    Text,
+    Th,
+    Thead,
+    Tr,
+} from "@chakra-ui/react";
+import { formatDateTime } from "@/lib/dates";
 
 type ReceiptsTableProps = {
     receipts: Receipt[];
@@ -54,135 +69,258 @@ export function ReceiptsTable({
 
     if (loading) {
         return (
-            <div className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-10 text-center text-sm text-slate-500">
+            <Box
+                rounded="2xl"
+                border="1px solid"
+                borderColor="border.subtle"
+                bg="bg.elevated"
+                p={10}
+                textAlign="center"
+                fontSize="sm"
+                color="text.muted"
+                boxShadow="var(--shadow)"
+            >
                 Fetching receipts from FinOS…
-            </div>
+            </Box>
         );
     }
 
     if (!receipts.length) {
         return (
-            <div className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-10 text-center text-sm text-slate-500">
+            <Box
+                rounded="2xl"
+                border="1px solid"
+                borderColor="border.subtle"
+                bg="bg.elevated"
+                p={10}
+                textAlign="center"
+                fontSize="sm"
+                color="text.muted"
+                boxShadow="var(--shadow)"
+            >
                 No receipts match the selected filters.
-            </div>
+            </Box>
         );
     }
 
     return (
-        <div className="rounded-2xl border border-slate-900/60 bg-slate-950/60">
-            <div className="space-y-4 p-4 md:hidden">
+        <Box
+            rounded="2xl"
+            border="1px solid"
+            borderColor="border.subtle"
+            bg="bg.elevated"
+            boxShadow="var(--shadow)"
+            overflow="hidden"
+        >
+            <Stack spacing={4} p={4} display={{ base: "block", md: "none" }}>
                 {receipts.map((receipt) => (
-                    <button
+                    <Box
                         key={receipt.id}
+                        as="button"
                         type="button"
                         onClick={() => onSelect(receipt)}
-                        className="w-full rounded-2xl border border-slate-900 bg-slate-950/80 p-4 text-left text-sm text-slate-200"
+                        w="full"
+                        textAlign="left"
+                        rounded="2xl"
+                        border="1px solid"
+                        borderColor="border.subtle"
+                        bg="bg.subtle"
+                        p={4}
+                        fontSize="sm"
+                        color="text.primary"
                     >
-                        <div className="flex items-center justify-between gap-3">
-                            <div>
-                                <p className="text-base font-semibold text-white">
+                        <Flex
+                            justify="space-between"
+                            gap={3}
+                            align="flex-start"
+                        >
+                            <Box minW={0}>
+                                <Text
+                                    fontSize="md"
+                                    fontWeight="semibold"
+                                    noOfLines={1}
+                                    color="text.primary"
+                                >
                                     {receipt.merchant}
-                                </p>
-                                <p className="text-xs text-slate-500">
+                                </Text>
+                                <Text
+                                    fontSize="xs"
+                                    color="text.muted"
+                                    noOfLines={1}
+                                >
                                     {receipt.owner}
-                                </p>
-                                <p className="text-xs text-slate-400">
+                                </Text>
+                                <Text
+                                    fontSize="xs"
+                                    color="text.muted"
+                                    noOfLines={1}
+                                >
                                     {receipt.issuer}
-                                </p>
-                            </div>
-                            <div className="text-right">
-                                <p className="font-semibold text-white">
+                                </Text>
+                            </Box>
+                            <Box textAlign="right">
+                                <Text
+                                    fontWeight="semibold"
+                                    color="text.primary"
+                                >
                                     {convertAmount(receipt)}
-                                </p>
-                                <p className="text-xs text-slate-500">
+                                </Text>
+                                <Text fontSize="xs" color="text.muted">
                                     {formatOriginalAmount(receipt)}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-1 text-xs">
+                                </Text>
+                            </Box>
+                        </Flex>
+                        <Flex mt={3} wrap="wrap" gap={1} fontSize="xs">
                             {receipt.categories?.map((cat) => (
-                                <span
+                                <Badge
                                     key={cat}
-                                    className="rounded-full bg-slate-900 px-2 py-0.5"
+                                    rounded="full"
+                                    px={2}
+                                    py={0.5}
+                                    bg="bg.subtle"
+                                    color="text.primary"
                                 >
                                     {cat}
-                                </span>
+                                </Badge>
                             ))}
-                        </div>
-                        <p className="mt-3 text-xs text-slate-400">
-                            {new Date(receipt.timestamp).toLocaleString()}
-                        </p>
-                    </button>
+                        </Flex>
+                        <Text mt={3} fontSize="xs" color="text.muted">
+                            {formatDateTime(receipt.timestamp, {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            })}
+                        </Text>
+                    </Box>
                 ))}
-            </div>
-            <div className="hidden md:block">
-                <table className="w-full text-left text-sm text-slate-300">
-                    <thead className="bg-slate-950/80 text-xs uppercase tracking-wide text-slate-500">
-                        <tr>
-                            <th className="px-5 py-3">Merchant</th>
-                            <th className="px-5 py-3">Owner</th>
-                            <th className="px-5 py-3">Issuer</th>
-                            <th className="px-5 py-3">Categories</th>
-                            <th className="px-5 py-3 text-right">Amount</th>
-                            <th className="px-5 py-3">Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {receipts.map((receipt) => {
-                            const isSelected = receipt.id === selectedId;
-                            return (
-                                <tr
-                                    key={receipt.id}
-                                    className={`cursor-pointer border-t border-slate-900/40 transition ${
-                                        isSelected
-                                            ? "bg-slate-900/80"
-                                            : "hover:bg-slate-900/40"
-                                    }`}
-                                    onClick={() => onSelect(receipt)}
-                                >
-                                    <td className="px-5 py-4 font-semibold text-white">
-                                        {receipt.merchant}
-                                    </td>
-                                    <td className="px-5 py-4 text-slate-400">
-                                        {receipt.owner}
-                                    </td>
-                                    <td className="px-5 py-4 text-slate-400">
-                                        {receipt.issuer}
-                                    </td>
-                                    <td className="px-5 py-4 text-slate-200">
-                                        <div className="flex flex-wrap gap-1">
-                                            {receipt.categories?.map((cat) => (
-                                                <span
-                                                    key={cat}
-                                                    className="rounded-full bg-slate-900 px-2 py-0.5 text-xs"
-                                                >
-                                                    {cat}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="px-5 py-4 text-right font-semibold text-white">
-                                        {convertAmount(receipt)}
-                                        <span className="ml-2 text-xs text-slate-500">
-                                            {formatOriginalAmount(receipt)}
-                                        </span>
-                                    </td>
-                                    <td className="px-5 py-4 text-slate-400">
-                                        {new Date(
-                                            receipt.timestamp,
-                                        ).toLocaleString(undefined, {
-                                            month: "short",
-                                            day: "numeric",
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            </Stack>
+
+            <Box display={{ base: "none", md: "block" }}>
+                <TableContainer>
+                    <Table size="sm" variant="simple" color="var(--foreground)">
+                        <Thead bg="var(--surface-soft)">
+                            <Tr>
+                                <Th px={4} py={3}>
+                                    Merchant
+                                </Th>
+                                <Th px={4} py={3}>
+                                    Owner
+                                </Th>
+                                <Th px={4} py={3}>
+                                    Issuer
+                                </Th>
+                                <Th px={4} py={3}>
+                                    Categories
+                                </Th>
+                                <Th px={4} py={3} textAlign="right">
+                                    Amount
+                                </Th>
+                                <Th px={4} py={3}>
+                                    Timestamp
+                                </Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {receipts.map((receipt) => {
+                                const isSelected = receipt.id === selectedId;
+                                return (
+                                    <Tr
+                                        key={receipt.id}
+                                        cursor="pointer"
+                                        borderTop="1px solid"
+                                        borderColor="var(--border)"
+                                        bg={
+                                            isSelected
+                                                ? "var(--surface-soft)"
+                                                : "transparent"
+                                        }
+                                        _hover={{
+                                            bg: "var(--surface-soft)",
+                                        }}
+                                        onClick={() => onSelect(receipt)}
+                                    >
+                                        <Td
+                                            px={4}
+                                            py={3}
+                                            maxW="180px"
+                                            fontWeight="semibold"
+                                        >
+                                            <Text noOfLines={1}>
+                                                {receipt.merchant}
+                                            </Text>
+                                        </Td>
+                                        <Td
+                                            px={4}
+                                            py={3}
+                                            maxW="160px"
+                                            color="var(--muted)"
+                                        >
+                                            <Text noOfLines={1}>
+                                                {receipt.owner}
+                                            </Text>
+                                        </Td>
+                                        <Td
+                                            px={4}
+                                            py={3}
+                                            maxW="160px"
+                                            color="var(--muted)"
+                                        >
+                                            <Text noOfLines={1}>
+                                                {receipt.issuer}
+                                            </Text>
+                                        </Td>
+                                        <Td px={4} py={3}>
+                                            <Flex wrap="wrap" gap={1}>
+                                                {receipt.categories?.map(
+                                                    (cat) => (
+                                                        <Badge
+                                                            key={cat}
+                                                            rounded="full"
+                                                            px={2}
+                                                            py={0.5}
+                                                            bg="var(--surface-soft)"
+                                                            color="var(--foreground)"
+                                                            fontSize="xs"
+                                                        >
+                                                            {cat}
+                                                        </Badge>
+                                                    ),
+                                                )}
+                                            </Flex>
+                                        </Td>
+                                        <Td
+                                            px={4}
+                                            py={3}
+                                            textAlign="right"
+                                            fontWeight="semibold"
+                                        >
+                                            {convertAmount(receipt)}
+                                            <Text
+                                                as="span"
+                                                ml={2}
+                                                fontSize="xs"
+                                                color="var(--muted)"
+                                            >
+                                                {formatOriginalAmount(receipt)}
+                                            </Text>
+                                        </Td>
+                                        <Td px={4} py={3} color="var(--muted)">
+                                            {formatDateTime(receipt.timestamp, {
+                                                month: "short",
+                                                day: "numeric",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })}
+                                        </Td>
+                                    </Tr>
+                                );
+                            })}
+                        </Tbody>
+                    </Table>
+                </TableContainer>
+            </Box>
+        </Box>
     );
 }

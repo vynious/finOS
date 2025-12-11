@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useSessionContext } from "@/context/session-context";
+import { Button, Flex, Spinner, Stack, Text } from "@chakra-ui/react";
 
 export default function AuthCallbackPage() {
     const router = useRouter();
@@ -42,36 +43,58 @@ export default function AuthCallbackPage() {
     }, [router, session]);
 
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-950 px-6 text-center text-white">
-            <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.4em] text-emerald-300">
+        <Flex
+            minH="100vh"
+            direction="column"
+            align="center"
+            justify="center"
+            gap={4}
+            bg="var(--background)"
+            color="var(--foreground)"
+            px={6}
+            textAlign="center"
+        >
+            <Stack spacing={3} align="center">
+                <Text
+                    fontSize="xs"
+                    textTransform="uppercase"
+                    letterSpacing="0.4em"
+                    color="var(--accent)"
+                >
                     FinOS
-                </p>
-                <h1 className="text-3xl font-semibold">
+                </Text>
+                <Text fontSize="3xl" fontWeight="semibold">
                     Finalizing your session…
-                </h1>
-                <p className="text-slate-300">{message}</p>
-            </div>
+                </Text>
+                <Text color="var(--muted)">{message}</Text>
+            </Stack>
             {status === "loading" ? (
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-800 border-t-emerald-400" />
+                <Spinner
+                    thickness="4px"
+                    speed="0.65s"
+                    emptyColor="var(--border)"
+                    color="var(--accent)"
+                    size="xl"
+                />
             ) : (
-                <div className="space-y-3">
-                    <button
-                        type="button"
+                <Stack spacing={3} align="center">
+                    <Button
                         onClick={() => router.replace("/")}
-                        className="rounded-full bg-emerald-400 px-6 py-3 font-semibold text-slate-900"
+                        bg="var(--accent)"
+                        color="var(--background)"
+                        _hover={{ opacity: 0.9 }}
                     >
                         Return home
-                    </button>
-                    <button
-                        type="button"
+                    </Button>
+                    <Button
+                        variant="link"
+                        color="var(--muted)"
                         onClick={session.connectGmail}
-                        className="block w-full text-sm text-slate-400 underline"
                     >
                         Retry Google login
-                    </button>
-                </div>
+                    </Button>
+                </Stack>
             )}
-        </main>
+        </Flex>
     );
 }

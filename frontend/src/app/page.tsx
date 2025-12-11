@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
 import { cookies } from "next/headers";
+
+import { Button, Container, Flex, Heading, SimpleGrid, Stack, Text, Box } from "@chakra-ui/react";
 
 import { config } from "@/lib/config";
 import type { ApiResponse, PublicUser } from "@/types";
@@ -84,146 +85,232 @@ export default async function LandingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white">
-            <header className="mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-20 pt-16 text-center">
-                <div className="mx-auto flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-4 py-1 text-xs uppercase tracking-[0.4em] text-emerald-300">
-                    FinOS
-                    <span className="text-slate-400">
-                        Gmail-native finance OS
-                    </span>
-                </div>
-                <h1 className="text-4xl font-semibold leading-tight sm:text-6xl">
-                    Turn Gmail receipts into a live spend command center.
-                </h1>
-                <p className="text-lg text-slate-300 sm:text-xl">
-                    FinOS authenticates with Google, ingests purchase
-                    confirmations, and gives finance teams a dashboard that
-                    feels like Ramp + Plaid, without building another data pipe.
-                </p>
-                <div className="flex flex-wrap justify-center gap-4 text-sm sm:text-base">
-                    <a
-                        href={`${config.apiBaseUrl}/auth/google/login`}
-                        className="rounded-full bg-emerald-400 px-6 py-3 font-semibold text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-[1.02]"
+        <Box minH="100vh" bg="var(--background)" color="var(--foreground)">
+            <Container maxW="6xl" px={6} py={{ base: 12, md: 16 }}>
+                <Stack spacing={10} align="center" textAlign="center">
+                    <Flex
+                        align="center"
+                        gap={2}
+                        rounded="full"
+                        border="1px solid"
+                        borderColor="var(--border)"
+                        bg="var(--surface-soft)"
+                        px={4}
+                        py={2}
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.3em"
+                        color="var(--accent)"
                     >
-                        Connect Gmail
-                    </a>
-                    <Link
-                        href="/dashboard"
-                        className="rounded-full border border-slate-700 px-6 py-3 font-semibold text-white hover:border-emerald-300"
-                    >
-                        Explore dashboard →
-                    </Link>
-                </div>
-                <div className="mx-auto grid gap-4 text-left sm:grid-cols-3">
-                    {heroHighlights.map((item) => (
-                        <article
-                            key={item.title}
-                            className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-5 text-left text-sm text-slate-300"
+                        FinOS
+                        <Text as="span" color="var(--muted)">
+                            Gmail-native finance OS
+                        </Text>
+                    </Flex>
+                    <Heading as="h1" size={{ base: "2xl", md: "3xl" }} maxW="3xl">
+                        Turn Gmail receipts into a live spend command center.
+                    </Heading>
+                    <Text fontSize={{ base: "md", md: "lg" }} maxW="3xl" color="var(--muted)">
+                        FinOS authenticates with Google, ingests purchase confirmations, and gives finance teams a dashboard that feels like Ramp + Plaid, without building another data pipe.
+                    </Text>
+                    <Flex gap={4} wrap="wrap" justify="center">
+                        <Button
+                            as="a"
+                            href={`${config.apiBaseUrl}/auth/google/login`}
+                            bg="var(--accent)"
+                            color="var(--background)"
+                            _hover={{ opacity: 0.9 }}
+                            px={6}
+                            py={3}
                         >
-                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                                {item.title}
-                            </p>
-                            <p className="mt-2 text-base text-white">
-                                {item.detail}
-                            </p>
-                        </article>
-                    ))}
-                </div>
-            </header>
-
-            <main className="mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-24">
-                <section className="grid gap-6 rounded-3xl border border-slate-900/60 bg-gradient-to-r from-slate-900/90 to-slate-950/80 p-8 sm:grid-cols-2">
-                    <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                            Why FinOS
-                        </p>
-                        <h2 className="text-3xl font-semibold">
-                            Purpose-built for revenue and finance teams.
-                        </h2>
-                        <p className="mt-4 text-slate-300">
-                            Instead of forwarding PDFs, FinOS reads your
-                            receipts directly from Gmail using secure OAuth
-                            scopes. Transactions are normalized, enriched, and
-                            surfaced with anomaly detection in under 60 seconds.
-                        </p>
-                    </div>
-                    <div className="space-y-4 rounded-2xl bg-slate-950/70 p-6 text-sm text-slate-300">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                                What you get
-                            </p>
-                            <ul className="mt-3 space-y-2">
-                                <li>
-                                    • PKCE OAuth + JWT session out of the box
-                                </li>
-                                <li>
-                                    • Gmail ingestion tuned per issuer + user
-                                </li>
-                                <li>
-                                    • Receipts normalized for analytics tooling
-                                </li>
-                            </ul>
-                        </div>
-                        <div className="rounded-2xl border border-slate-900 bg-slate-950/80 p-4 text-sm text-slate-300">
-                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                                Cron cadence
-                            </p>
-                            <p className="text-emerald-300">
-                                ~60s Tokio heartbeat (configurable)
-                            </p>
-                            <p className="text-xs text-slate-500">
-                                Change the interval inside `start_sync_job`.
-                            </p>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="rounded-3xl border border-slate-900/60 bg-slate-950/70 p-8">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                        How FinOS works
-                    </p>
-                    <div className="mt-6 grid gap-6 md:grid-cols-2">
-                        {pipelineSteps.map((step, idx) => (
-                            <article
-                                key={step.title}
-                                className="rounded-2xl border border-slate-900 bg-slate-950/70 p-5"
+                            Connect Gmail
+                        </Button>
+                        <Button
+                            as={Link}
+                            href="/dashboard"
+                            variant="outline"
+                            borderColor="var(--border)"
+                            color="var(--foreground)"
+                            _hover={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+                            px={6}
+                            py={3}
+                        >
+                            Explore dashboard →
+                        </Button>
+                    </Flex>
+                    <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4} w="full">
+                        {heroHighlights.map((item) => (
+                            <Box
+                                key={item.title}
+                                rounded="2xl"
+                                border="1px solid"
+                                borderColor="var(--border)"
+                                bg="var(--surface)"
+                                p={5}
+                                textAlign="left"
+                                color="var(--muted)"
                             >
-                                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">
-                                    Step {idx + 1}
-                                </span>
-                                <h3 className="mt-2 text-xl font-semibold text-white">
-                                    {step.title}
-                                </h3>
-                                <p className="mt-2 text-sm text-slate-300">
-                                    {step.detail}
-                                </p>
-                            </article>
+                                <Text
+                                    fontSize="xs"
+                                    textTransform="uppercase"
+                                    letterSpacing="0.3em"
+                                    color="var(--muted)"
+                                >
+                                    {item.title}
+                                </Text>
+                                <Text mt={2} fontSize="md" fontWeight="semibold" color="var(--foreground)">
+                                    {item.detail}
+                                </Text>
+                            </Box>
                         ))}
-                    </div>
-                </section>
+                    </SimpleGrid>
+                </Stack>
+            </Container>
 
-                <section className="grid gap-8 sm:grid-cols-3">
+            <Box bg="var(--surface)" py={12}>
+                <Container maxW="6xl" px={6}>
+                    <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={6} alignItems="stretch">
+                        <Box>
+                            <Text
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.3em"
+                                color="var(--muted)"
+                            >
+                                Why FinOS
+                            </Text>
+                            <Heading size="lg" mt={2}>
+                                Purpose-built for revenue and finance teams.
+                            </Heading>
+                            <Text mt={4} color="var(--muted)">
+                                Instead of forwarding PDFs, FinOS reads your receipts directly from Gmail using secure OAuth scopes. Transactions are normalized, enriched, and surfaced with anomaly detection in under 60 seconds.
+                            </Text>
+                        </Box>
+                        <Stack spacing={4} rounded="2xl" bg="var(--surface-soft)" p={6} fontSize="sm" color="var(--muted)">
+                            <Box>
+                                <Text
+                                    fontSize="xs"
+                                    textTransform="uppercase"
+                                    letterSpacing="0.3em"
+                                    color="var(--muted)"
+                                >
+                                    What you get
+                                </Text>
+                                <Stack mt={3} spacing={2}>
+                                    <Text>• PKCE OAuth + JWT session out of the box</Text>
+                                    <Text>• Gmail ingestion tuned per issuer + user</Text>
+                                    <Text>• Receipts normalized for analytics tooling</Text>
+                                </Stack>
+                            </Box>
+                            <Box
+                                rounded="2xl"
+                                border="1px solid"
+                                borderColor="var(--border)"
+                                bg="var(--surface)"
+                                p={4}
+                            >
+                                <Text
+                                    fontSize="xs"
+                                    textTransform="uppercase"
+                                    letterSpacing="0.3em"
+                                    color="var(--muted)"
+                                >
+                                    Cron cadence
+                                </Text>
+                                <Text color="var(--accent)">~60s Tokio heartbeat (configurable)</Text>
+                                <Text fontSize="xs" color="var(--muted)">
+                                    Change the interval inside `start_sync_job`.
+                                </Text>
+                            </Box>
+                        </Stack>
+                    </SimpleGrid>
+                </Container>
+            </Box>
+
+            <Container maxW="6xl" px={6} py={12}>
+                <Box rounded="3xl" border="1px solid" borderColor="var(--border)" bg="var(--surface)" p={8}>
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.3em"
+                        color="var(--muted)"
+                    >
+                        How FinOS works
+                    </Text>
+                    <SimpleGrid mt={6} columns={{ base: 1, md: 2 }} spacing={6}>
+                        {pipelineSteps.map((step, idx) => (
+                            <Box
+                                key={step.title}
+                                rounded="2xl"
+                                border="1px solid"
+                                borderColor="var(--border)"
+                                bg="var(--surface-soft)"
+                                p={5}
+                            >
+                                <Text
+                                    fontSize="xs"
+                                    fontWeight="semibold"
+                                    textTransform="uppercase"
+                                    letterSpacing="0.3em"
+                                    color="var(--accent)"
+                                >
+                                    Step {idx + 1}
+                                </Text>
+                                <Text mt={2} fontSize="xl" fontWeight="semibold" color="var(--foreground)">
+                                    {step.title}
+                                </Text>
+                                <Text mt={2} fontSize="sm" color="var(--muted)">
+                                    {step.detail}
+                                </Text>
+                            </Box>
+                        ))}
+                    </SimpleGrid>
+                </Box>
+            </Container>
+
+            <Container maxW="6xl" px={6} pb={16}>
+                <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={6}>
                     {dashboardCallouts.map((card) => (
-                        <article
+                        <Box
                             key={card.title}
-                            className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-6 text-slate-300"
+                            rounded="2xl"
+                            border="1px solid"
+                            borderColor="var(--border)"
+                            bg="var(--surface)"
+                            p={6}
+                            color="var(--muted)"
                         >
-                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                            <Text
+                                fontSize="xs"
+                                textTransform="uppercase"
+                                letterSpacing="0.3em"
+                                color="var(--muted)"
+                            >
                                 Dashboard
-                            </p>
-                            <h3 className="mt-2 text-xl font-semibold text-white">
+                            </Text>
+                            <Text mt={2} fontSize="xl" fontWeight="semibold" color="var(--foreground)">
                                 {card.title}
-                            </h3>
-                            <p className="mt-2 text-sm">{card.detail}</p>
-                        </article>
+                            </Text>
+                            <Text mt={2} fontSize="sm">
+                                {card.detail}
+                            </Text>
+                        </Box>
                     ))}
-                </section>
-            </main>
+                </SimpleGrid>
+            </Container>
 
-            <footer className="border-t border-slate-900/60 bg-slate-950/70 py-8 text-center text-sm text-slate-500">
-                Built for finance teams that live inside Gmail. Ready when you
-                are.
-            </footer>
-        </div>
+            <Box
+                as="footer"
+                borderTop="1px solid"
+                borderColor="var(--border)"
+                bg="var(--surface)"
+                py={8}
+                textAlign="center"
+                fontSize="sm"
+                color="var(--muted)"
+            >
+                Built for finance teams that live inside Gmail. Ready when you are.
+            </Box>
+        </Box>
     );
 }

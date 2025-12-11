@@ -1,60 +1,99 @@
 "use client";
 
+import {
+    Box,
+    Flex,
+    Stack,
+    Switch,
+    Text,
+} from "@chakra-ui/react";
+
 type SettingsPanelProps = {
     email: string;
 };
 
 export function SettingsPanel({ email }: SettingsPanelProps) {
     return (
-        <section className="rounded-2xl border border-slate-900/60 bg-slate-950/60 p-5 text-sm text-slate-200">
-            <header className="mb-4">
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+        <Box
+            rounded="2xl"
+            border="1px solid"
+            borderColor="var(--border)"
+            bg="var(--surface)"
+            p={5}
+            color="var(--foreground)"
+            fontSize="sm"
+            boxShadow="var(--shadow)"
+        >
+            <Box mb={4}>
+                <Text
+                    fontSize="xs"
+                    textTransform="uppercase"
+                    letterSpacing="0.3em"
+                    color="var(--muted)"
+                >
                     Controls
-                </p>
-                <h3 className="text-lg font-semibold text-white">
+                </Text>
+                <Text as="h3" fontSize="lg" fontWeight="semibold">
                     Account & Notifications
-                </h3>
-            </header>
-            <div className="space-y-4">
-                <div className="rounded-xl border border-slate-900 bg-slate-900/60 p-4">
-                    <p className="text-xs uppercase tracking-widest text-slate-500">
+                </Text>
+            </Box>
+            <Stack spacing={4}>
+                <Box
+                    rounded="xl"
+                    border="1px solid"
+                    borderColor="var(--border)"
+                    bg="var(--surface-soft)"
+                    p={4}
+                >
+                    <Text
+                        fontSize="xs"
+                        textTransform="uppercase"
+                        letterSpacing="0.2em"
+                        color="var(--muted)"
+                    >
                         Connected Gmail
-                    </p>
-                    <p className="text-white">{email}</p>
-                    <p className="text-xs text-slate-500">
+                    </Text>
+                    <Text fontWeight="semibold">{email}</Text>
+                    <Text fontSize="xs" color="var(--muted)">
                         OAuth token stored securely in Mongo tokens collection
-                    </p>
-                </div>
-                <label className="flex items-center justify-between rounded-xl border border-slate-900 bg-slate-900/60 px-4 py-3">
-                    <div>
-                        <p className="font-semibold text-white">Sync alerts</p>
-                        <p className="text-xs text-slate-400">
-                            Notify me if Gmail ingest fails
-                        </p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="h-5 w-5" />
-                </label>
-                <label className="flex items-center justify-between rounded-xl border border-slate-900 bg-slate-900/60 px-4 py-3">
-                    <div>
-                        <p className="font-semibold text-white">
-                            Budget nudges
-                        </p>
-                        <p className="text-xs text-slate-400">
-                            Slack me when category spend nears budget
-                        </p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="h-5 w-5" />
-                </label>
-                <label className="flex items-center justify-between rounded-xl border border-slate-900 bg-slate-900/60 px-4 py-3">
-                    <div>
-                        <p className="font-semibold text-white">Auto-tag AI</p>
-                        <p className="text-xs text-slate-400">
-                            Let Ollama suggest merchant categories
-                        </p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="h-5 w-5" />
-                </label>
-            </div>
-        </section>
+                    </Text>
+                </Box>
+
+                {[
+                    {
+                        title: "Sync alerts",
+                        subtitle: "Notify me if Gmail ingest fails",
+                    },
+                    {
+                        title: "Budget nudges",
+                        subtitle: "Slack me when category spend nears budget",
+                    },
+                    {
+                        title: "Auto-tag AI",
+                        subtitle: "Let Ollama suggest merchant categories",
+                    },
+                ].map((item) => (
+                    <Flex
+                        key={item.title}
+                        align="center"
+                        justify="space-between"
+                        rounded="xl"
+                        border="1px solid"
+                        borderColor="var(--border)"
+                        bg="var(--surface-soft)"
+                        px={4}
+                        py={3}
+                    >
+                        <Box>
+                            <Text fontWeight="semibold">{item.title}</Text>
+                            <Text fontSize="xs" color="var(--muted)">
+                                {item.subtitle}
+                            </Text>
+                        </Box>
+                        <Switch defaultChecked colorScheme="teal" size="md" />
+                    </Flex>
+                ))}
+            </Stack>
+        </Box>
     );
 }

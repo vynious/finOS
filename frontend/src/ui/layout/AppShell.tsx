@@ -12,14 +12,23 @@ import {
     HStack,
     Heading,
     IconButton,
-    Select,
+    Menu,
+    MenuButton,
+    MenuItem,
+    MenuList,
     Stack,
     Text,
     VStack,
 } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
-import { CloseIcon, HamburgerIcon } from "@chakra-ui/icons";
-import { SunIcon, MoonIcon } from "@chakra-ui/icons";
+import {
+    CloseIcon,
+    HamburgerIcon,
+    ChevronDownIcon,
+    SunIcon,
+    MoonIcon,
+    CheckIcon,
+} from "@chakra-ui/icons";
 import { useThemeMode } from "@/context/theme-mode-context";
 
 type SectionKey = "transactions" | "settings";
@@ -33,6 +42,84 @@ type AppShellProps = {
     onSectionChange: (section: SectionKey) => void;
     children: React.ReactNode;
 };
+
+type CurrencyMenuProps = {
+    currency: string;
+    supported: string[];
+    onChange: (value: string) => void;
+};
+
+// Compact currency menu to replace the native select, keeping the same behaviour.
+function CurrencyMenu({ currency, supported, onChange }: CurrencyMenuProps) {
+    return (
+        <Menu>
+            <MenuButton
+                as={Button}
+                rightIcon={<ChevronDownIcon />}
+                variant="ghost"
+                border="1px solid"
+                borderColor="border.emphasis"
+                bg="bg.subtle"
+                color="text.muted"
+                rounded="full"
+                px={3}
+                py={2}
+                fontSize="xs"
+                _focusVisible={{
+                    boxShadow: "0 0 0 1px var(--accent-primary)",
+                    borderColor: "accent.primary",
+                }}
+            >
+                <HStack spacing={2}>
+                    <Text fontWeight="medium" color="text.primary">
+                        Currency
+                    </Text>
+                    <Badge
+                        rounded="full"
+                        px={2}
+                        py={1}
+                        bg="accent.primary"
+                        color="bg.base"
+                        fontWeight="semibold"
+                    >
+                        {currency}
+                    </Badge>
+                </HStack>
+            </MenuButton>
+            <MenuList
+                minW="36"
+                bg="bg.elevated"
+                borderColor="border.subtle"
+                boxShadow="lg"
+                rounded="lg"
+                color="text.primary"
+            >
+                {supported.map((code) => {
+                    const isActive = code === currency;
+                    return (
+                        <MenuItem
+                            key={code}
+                            onClick={() => onChange(code)}
+                            py={2}
+                            px={3}
+                            bg={isActive ? "bg.subtle" : "transparent"}
+                            color={isActive ? "text.primary" : "text.muted"}
+                            _hover={{
+                                bg: "bg.subtle",
+                                color: "text.primary",
+                            }}
+                            icon={isActive ? <CheckIcon /> : undefined}
+                        >
+                            <Text fontWeight={isActive ? "semibold" : "normal"}>
+                                {code}
+                            </Text>
+                        </MenuItem>
+                    );
+                })}
+            </MenuList>
+        </Menu>
+    );
+}
 
 const rangeOptions: { label: string; value: DateRange }[] = [
     { label: "7d", value: "7d" },
@@ -357,41 +444,15 @@ export function AppShell({
                                                 </Button>
                                             ))}
                                         </HStack>
-                                        <HStack
-                                            spacing={2}
-                                            rounded="full"
-                                            border="1px solid"
-                                            borderColor="border.subtle"
-                                            bg="bg.subtle"
-                                            px={3}
-                                            py={1.5}
-                                            fontSize="xs"
-                                            textTransform="uppercase"
-                                            letterSpacing="0.2em"
-                                            color="text.muted"
-                                        >
-                                            <Text>Currency</Text>
-                                            <Select
-                                                variant="unstyled"
-                                                value={currency}
-                                                onChange={(event) =>
-                                                    setCurrency(
-                                                        event.target
-                                                            .value as (typeof supported)[number],
-                                                    )
-                                                }
-                                                color="text.primary"
-                                            >
-                                                {supported.map((code) => (
-                                                    <option
-                                                        key={code}
-                                                        value={code}
-                                                    >
-                                                        {code}
-                                                    </option>
-                                                ))}
-                                            </Select>
-                                        </HStack>
+                                        <CurrencyMenu
+                                            currency={currency}
+                                            supported={supported}
+                                            onChange={(code) =>
+                                                setCurrency(
+                                                    code as (typeof supported)[number],
+                                                )
+                                            }
+                                        />
                                     </HStack>
                                     <HStack
                                         spacing={2}
@@ -487,33 +548,22 @@ export function AppShell({
                                 spacing={2}
                                 rounded="full"
                                 border="1px solid"
-                                borderColor="border.subtle"
+                                borderColor="border.emphasis"
                                 bg="bg.subtle"
                                 px={3}
                                 py={1.5}
                                 fontSize="xs"
-                                textTransform="uppercase"
-                                letterSpacing="0.2em"
                                 color="text.muted"
                             >
-                                <Text>Currency</Text>
-                                <Select
-                                    variant="unstyled"
-                                    value={currency}
-                                    onChange={(event) =>
+                                <CurrencyMenu
+                                    currency={currency}
+                                    supported={supported}
+                                    onChange={(code) =>
                                         setCurrency(
-                                            event.target
-                                                .value as (typeof supported)[number],
+                                            code as (typeof supported)[number],
                                         )
                                     }
-                                    color="text.primary"
-                                >
-                                    {supported.map((code) => (
-                                        <option key={code} value={code}>
-                                            {code}
-                                        </option>
-                                    ))}
-                                </Select>
+                                />
                             </HStack>
                             <Badge
                                 px={4}

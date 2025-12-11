@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useCurrency } from "@/context/currency-context";
 import type { CurrencyCode } from "@/lib/config";
@@ -8,6 +8,7 @@ import type { Receipt } from "@/types";
 import {
     Badge,
     Box,
+    Button,
     Flex,
     Stack,
     Table,
@@ -19,6 +20,7 @@ import {
     Thead,
     Tr,
 } from "@chakra-ui/react";
+import { TriangleDownIcon, TriangleUpIcon } from "@chakra-ui/icons";
 import { formatDateTime } from "@/lib/dates";
 
 type ReceiptsTableProps = {
@@ -34,6 +36,12 @@ export function ReceiptsTable({
     selectedId,
     onSelect,
 }: ReceiptsTableProps) {
+    type SortKey = "merchant" | "issuer" | "amount" | "timestamp";
+    type SortDir = "asc" | "desc";
+    const [sort, setSort] = useState<{ key: SortKey | null; dir: SortDir }>({
+        key: null,
+        dir: "asc",
+    });
     const { convert, format, supported } = useCurrency();
     const supportedSet = useMemo(
         () => new Set<CurrencyCode>(supported),
@@ -58,6 +66,96 @@ export function ReceiptsTable({
             .split(" ")
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
+
+    const sortedReceipts = useMemo(() => {
+        if (!sort.key) return receipts;
+        const next = [...receipts];
+        next.sort((a, b) => {
+            const dirFactor = sort.dir === "asc" ? 1 : -1;
+            switch (sort.key) {
+                case "merchant":
+                    return (
+                        a.merchant.localeCompare(b.merchant, undefined, {
+                            sensitivity: "base",
+                        }) * dirFactor
+                    );
+                case "issuer":
+                    return (
+                        (a.issuer ?? "").localeCompare(
+                            b.issuer ?? "",
+                            undefined,
+                            {
+                                sensitivity: "base",
+                            },
+                        ) * dirFactor
+                    );
+                case "amount":
+                    return (a.amount - b.amount) * dirFactor;
+                case "timestamp":
+                default:
+                    return (
+                        (new Date(a.timestamp).getTime() -
+                            new Date(b.timestamp).getTime()) *
+                        dirFactor
+                    );
+            }
+        });
+        return next;
+    }, [receipts, sort]);
+
+    const toggleSort = (key: SortKey) => {
+        setSort((prev) => {
+            if (prev.key === key) {
+                return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+            }
+            return { key, dir: "asc" };
+        });
+    };
+
+    const SortButton = ({
+        label,
+        sortKey,
+        align = "center",
+        border,
+    }: {
+        label: string;
+        sortKey: SortKey;
+        align?: "left" | "center" | "right";
+        border?: boolean;
+    }) => (
+        <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => toggleSort(sortKey)}
+            justifyContent={
+                align === "left"
+                    ? "flex-start"
+                    : align === "right"
+                      ? "flex-end"
+                      : "center"
+            }
+            w="full"
+            px={0}
+            py={3}
+            color="text.secondary"
+            fontWeight="medium"
+            rightIcon={
+                sort.key === sortKey ? (
+                    sort.dir === "asc" ? (
+                        <TriangleUpIcon boxSize={3} />
+                    ) : (
+                        <TriangleDownIcon boxSize={3} />
+                    )
+                ) : (
+                    <TriangleUpIcon opacity={0.2} boxSize={3} />
+                )
+            }
+            borderRight={border ? "1px solid" : undefined}
+            borderColor={border ? "border.subtle" : undefined}
+        >
+            {label}
+        </Button>
+    );
 
     if (loading) {
         return (
@@ -106,7 +204,7 @@ export function ReceiptsTable({
         >
             {/* Mobile cards */}
             <Stack spacing={4} p={4} display={{ base: "block", md: "none" }}>
-                {receipts.map((receipt) => (
+                {sortedReceipts.map((receipt) => (
                     <Box
                         key={receipt.id}
                         as="button"
@@ -192,65 +290,46 @@ export function ReceiptsTable({
                             borderColor="border.subtle"
                         >
                             <Tr>
-                                <Th
-                                    px={4}
-                                    py={3}
-                                    color="text.secondary"
-                                    fontWeight="medium"
-                                    borderRight="1px solid"
-                                    borderColor="border.subtle"
-                                    textAlign="left"
-                                >
-                                    Merchant
+                                <Th p={0}>
+                                    <SortButton
+                                        label="Merchant"
+                                        sortKey="merchant"
+                                        align="left"
+                                        border
+                                    />
                                 </Th>
-                                <Th
-                                    px={4}
-                                    py={3}
-                                    color="text.secondary"
-                                    fontWeight="medium"
-                                    borderRight="1px solid"
-                                    borderColor="border.subtle"
-                                    textAlign="center"
-                                >
-                                    Issuer
+                                <Th p={0}>
+                                    <SortButton
+                                        label="Issuer"
+                                        sortKey="issuer"
+                                        border
+                                    />
                                 </Th>
-                                <Th
-                                    px={4}
-                                    py={3}
-                                    color="text.secondary"
-                                    fontWeight="medium"
-                                    borderRight="1px solid"
-                                    borderColor="border.subtle"
-                                    textAlign="center"
-                                >
-                                    Categories
+                                <Th p={0}>
+                                    <SortButton
+                                        label="Categories"
+                                        sortKey="merchant"
+                                        border
+                                    />
                                 </Th>
-                                <Th
-                                    px={4}
-                                    py={3}
-                                    textAlign="center"
-                                    color="text.secondary"
-                                    fontWeight="medium"
-                                    borderRight="1px solid"
-                                    borderColor="border.subtle"
-                                >
-                                    Amount
+                                <Th p={0}>
+                                    <SortButton
+                                        label="Amount"
+                                        sortKey="amount"
+                                        border
+                                    />
                                 </Th>
-                                <Th
-                                    px={4}
-                                    py={3}
-                                    color="text.secondary"
-                                    fontWeight="medium"
-                                    borderRight="1px solid"
-                                    borderColor="border.subtle"
-                                    textAlign="center"
-                                >
-                                    Timestamp
+                                <Th p={0}>
+                                    <SortButton
+                                        label="Timestamp"
+                                        sortKey="timestamp"
+                                        align="center"
+                                    />
                                 </Th>
                             </Tr>
                         </Thead>
                         <Tbody bg="bg.table">
-                            {receipts.map((receipt, idx) => {
+                            {sortedReceipts.map((receipt, idx) => {
                                 const isSelected = receipt.id === selectedId;
                                 return (
                                     <Tr

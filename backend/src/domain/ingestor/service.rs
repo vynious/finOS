@@ -1,4 +1,7 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    time::{SystemTime, UNIX_EPOCH},
+    vec,
+};
 
 use crate::domain::{
     email::service::EmailService,
@@ -44,13 +47,31 @@ impl IngestorService {
     /// 4. Run sync receipts for each clients with tokio workers
     /// 5. Collect all the receipts and bulk insert into store
     /// 6. Update last synced time for users
-    pub async fn sync_receipts(&self) -> Result<()> {
+    pub async fn sync_receipts(&self, email: Option<String>) -> Result<()> {
         // get users
-        let users = self
-            .user_service
-            .get_users_by_status(true)
-            .await
-            .context("Retrieving users for syncing")?;
+        let users = match email {
+            Some(email) => {
+                match self
+                    .user_service
+                    .find_by_email(&email)
+                    .await
+                    .context("Retrieving user for sync")?
+                {
+                    Some(user) => vec![user],
+                    None => vec![],
+                }
+            }
+            None => self
+                .user_service
+                .get_users_by_status(true)
+                .await
+                .context("Retrieving users for syncing")?,
+        };
+
+        if users.is_empty() {
+            return Ok(());
+        }
+
         let mut all_receipts: ReceiptList = ReceiptList {
             transactions: Vec::new(),
         };

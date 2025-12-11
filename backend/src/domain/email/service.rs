@@ -1,8 +1,8 @@
-use crate::domain::auth::service::AuthService;
-use crate::domain::email::repository::EmailRepo;
-use crate::domain::email::models::*;
-use crate::domain::receipt::models::{Receipt, ReceiptList};
 use crate::domain::auth::repository::TokenStore;
+use crate::domain::auth::service::AuthService;
+use crate::domain::email::models::*;
+use crate::domain::email::repository::EmailRepo;
+use crate::domain::receipt::models::{Receipt, ReceiptList};
 use anyhow::{Context, Result};
 use base64::Engine;
 use ego_tree::NodeRef;
@@ -17,9 +17,8 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::vec;
 
-static SUBJECT_RE: Lazy<Regex> = Lazy::new(|| {
-    build_keyword_regex(&["transaction", "spent", "payment"])
-});
+static SUBJECT_RE: Lazy<Regex> =
+    Lazy::new(|| build_keyword_regex(&["transaction", "spent", "payment"]));
 
 // TODO: ??
 fn decode_base64url(s: &str) -> Result<Vec<u8>> {

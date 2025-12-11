@@ -1,18 +1,8 @@
 "use client";
 
-import {
-    Box,
-    Flex,
-    Stack,
-    Switch,
-    Text,
-} from "@chakra-ui/react";
+import { Box, Flex, Stack, Switch, Text } from "@chakra-ui/react";
 
-type SettingsPanelProps = {
-    email: string;
-};
-
-export function SettingsPanel({ email }: SettingsPanelProps) {
+export function SettingsPanel({}: { email: string }) {
     return (
         <Box
             rounded="2xl"
@@ -53,7 +43,7 @@ export function SettingsPanel({ email }: SettingsPanelProps) {
                     >
                         Connected Gmail
                     </Text>
-                    <Text fontWeight="semibold">{email}</Text>
+                    <Text fontWeight="semibold">Connected</Text>
                     <Text fontSize="xs" color="var(--muted)">
                         OAuth token stored securely in Mongo tokens collection
                     </Text>

@@ -387,19 +387,6 @@ export function AppShell({
                                     spacing={3}
                                     display={{ base: "none", lg: "flex" }}
                                 >
-                                    <Badge
-                                        px={4}
-                                        py={2}
-                                        rounded="full"
-                                        border="1px solid"
-                                        borderColor="border.subtle"
-                                        bg="bg.subtle"
-                                        color="text.muted"
-                                        fontWeight="medium"
-                                        fontSize="xs"
-                                    >
-                                        {email}
-                                    </Badge>
                                     <HStack spacing={3}>
                                         <HStack
                                             spacing={1}
@@ -482,12 +469,6 @@ export function AppShell({
                                             >
                                                 Signed in
                                             </Text>
-                                            <Text
-                                                fontSize="sm"
-                                                color="text.primary"
-                                            >
-                                                {email}
-                                            </Text>
                                         </Box>
                                     </HStack>
                                 </HStack>
@@ -565,19 +546,6 @@ export function AppShell({
                                     }
                                 />
                             </HStack>
-                            <Badge
-                                px={4}
-                                py={2}
-                                rounded="full"
-                                border="1px solid"
-                                borderColor="border.subtle"
-                                bg="bg.subtle"
-                                color="text.muted"
-                                fontWeight="medium"
-                                fontSize="xs"
-                            >
-                                {email}
-                            </Badge>
                         </Stack>
                     )}
                 </Container>

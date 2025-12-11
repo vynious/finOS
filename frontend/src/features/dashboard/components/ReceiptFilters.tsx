@@ -67,12 +67,6 @@ export function ReceiptFilters({
                     >
                         Filters
                     </Text>
-                    <Text>
-                        Viewing receipts for{" "}
-                        <Text as="span" fontWeight="semibold">
-                            {filters.email}
-                        </Text>
-                    </Text>
                 </Box>
                 <Button
                     onClick={onReset}
@@ -134,17 +128,6 @@ export function ReceiptFilters({
                         </Button>
                     ))}
                 </HStack>
-                <Badge
-                    rounded="full"
-                    px={4}
-                    py={1.5}
-                    border="1px solid"
-                    borderColor="border.subtle"
-                    bg="bg.subtle"
-                    color="text.primary"
-                >
-                    {filters.email}
-                </Badge>
             </HStack>
 
             <Stack

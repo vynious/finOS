@@ -83,7 +83,7 @@ export function InsightsGrid({
                             label: "Total spend",
                             value: format(summary.totalSpend, currency),
                             badge: email
-                                ? `Account: ${email}`
+                                ? ``
                                 : "Connect Gmail to ingest",
                         },
                         {

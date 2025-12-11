@@ -54,7 +54,7 @@ function buildActivityEntries(
                   {
                       id: "activity-placeholder",
                       title: "Awaiting Gmail sync",
-                      detail: `No receipts ingested yet for ${email}.`,
+                      detail: `No receipts ingested yet.`,
                       timestamp: new Date().toISOString(),
                   },
               ]
@@ -69,7 +69,7 @@ function buildActivityEntries(
     return sorted.slice(0, 6).map((receipt) => ({
         id: receipt.id,
         title: `Processed ${receipt.merchant}`,
-        detail: `${receipt.owner} via ${receipt.issuer ?? "Gmail"} · ${formatReceiptAmount(receipt)}`,
+        detail: `${receipt.issuer ?? "Gmail"} · ${formatReceiptAmount(receipt)}`,
         timestamp: receipt.timestamp,
     }));
 }

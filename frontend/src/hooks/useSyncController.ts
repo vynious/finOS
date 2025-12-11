@@ -76,13 +76,13 @@ export function useSyncController({
                     syncStatus.lastSynced ??
                     toIso(profileLastSynced) ??
                     new Date().toISOString(),
-                message: `Loaded ${receipts.length} receipts for ${email}`,
+                message: `Loaded ${receipts.length} receipts`,
             });
         } else {
             setSyncStatus({
                 state: "idle",
                 lastSynced: toIso(profileLastSynced),
-                message: `No receipts found for ${email} yet.`,
+                message: `No receipts found.`,
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

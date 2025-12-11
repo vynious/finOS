@@ -67,17 +67,24 @@ export function ReceiptsTable({
         }
     }, []);
 
+    const toTitleCase = (value: string) =>
+        value
+            .toLowerCase()
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+
     if (loading) {
         return (
             <Box
                 rounded="2xl"
                 border="1px solid"
                 borderColor="border.subtle"
-                bg="bg.elevated"
+                bg="bg.surface"
                 p={10}
                 textAlign="center"
                 fontSize="sm"
-                color="text.muted"
+                color="text.secondary"
                 boxShadow="var(--shadow)"
             >
                 Fetching receipts from FinOS…
@@ -91,11 +98,11 @@ export function ReceiptsTable({
                 rounded="2xl"
                 border="1px solid"
                 borderColor="border.subtle"
-                bg="bg.elevated"
+                bg="bg.surface"
                 p={10}
                 textAlign="center"
                 fontSize="sm"
-                color="text.muted"
+                color="text.secondary"
                 boxShadow="var(--shadow)"
             >
                 No receipts match the selected filters.
@@ -108,10 +115,11 @@ export function ReceiptsTable({
             rounded="2xl"
             border="1px solid"
             borderColor="border.subtle"
-            bg="bg.elevated"
+            bg="bg.surface"
             boxShadow="var(--shadow)"
             overflow="hidden"
         >
+            {/* Mobile cards */}
             <Stack spacing={4} p={4} display={{ base: "block", md: "none" }}>
                 {receipts.map((receipt) => (
                     <Box
@@ -121,10 +129,10 @@ export function ReceiptsTable({
                         onClick={() => onSelect(receipt)}
                         w="full"
                         textAlign="left"
-                        rounded="2xl"
+                        rounded="xl"
                         border="1px solid"
                         borderColor="border.subtle"
-                        bg="bg.subtle"
+                        bg="bg.table"
                         p={4}
                         fontSize="sm"
                         color="text.primary"
@@ -140,19 +148,13 @@ export function ReceiptsTable({
                                     fontWeight="semibold"
                                     noOfLines={1}
                                     color="text.primary"
+                                    title={receipt.merchant}
                                 >
-                                    {receipt.merchant}
+                                    {toTitleCase(receipt.merchant)}
                                 </Text>
                                 <Text
                                     fontSize="xs"
-                                    color="text.muted"
-                                    noOfLines={1}
-                                >
-                                    {receipt.owner}
-                                </Text>
-                                <Text
-                                    fontSize="xs"
-                                    color="text.muted"
+                                    color="text.secondary"
                                     noOfLines={1}
                                 >
                                     {receipt.issuer}
@@ -162,10 +164,15 @@ export function ReceiptsTable({
                                 <Text
                                     fontWeight="semibold"
                                     color="text.primary"
+                                    fontFamily="mono"
                                 >
                                     {convertAmount(receipt)}
                                 </Text>
-                                <Text fontSize="xs" color="text.muted">
+                                <Text
+                                    fontSize="xs"
+                                    color="text.muted"
+                                    fontFamily="mono"
+                                >
                                     {formatOriginalAmount(receipt)}
                                 </Text>
                             </Box>
@@ -177,14 +184,14 @@ export function ReceiptsTable({
                                     rounded="full"
                                     px={2}
                                     py={0.5}
-                                    bg="bg.subtle"
+                                    bg="bg.row"
                                     color="text.primary"
                                 >
                                     {cat}
                                 </Badge>
                             ))}
                         </Flex>
-                        <Text mt={3} fontSize="xs" color="text.muted">
+                        <Text mt={3} fontSize="xs" color="text.secondary">
                             {formatDateTime(receipt.timestamp, {
                                 year: "numeric",
                                 month: "short",
@@ -197,47 +204,91 @@ export function ReceiptsTable({
                 ))}
             </Stack>
 
+            {/* Desktop table */}
             <Box display={{ base: "none", md: "block" }}>
                 <TableContainer>
-                    <Table size="sm" variant="simple" color="var(--foreground)">
-                        <Thead bg="var(--surface-soft)">
+                    <Table size="sm" variant="unstyled" color="text.primary">
+                        <Thead
+                            bg="bg.table"
+                            borderBottom="1px solid"
+                            borderColor="border.subtle"
+                        >
                             <Tr>
-                                <Th px={4} py={3}>
+                                <Th
+                                    px={4}
+                                    py={3}
+                                    color="text.secondary"
+                                    fontWeight="medium"
+                                    borderRight="1px solid"
+                                    borderColor="border.subtle"
+                                    textAlign="left"
+                                >
                                     Merchant
                                 </Th>
-                                <Th px={4} py={3}>
-                                    Owner
-                                </Th>
-                                <Th px={4} py={3}>
+                                <Th
+                                    px={4}
+                                    py={3}
+                                    color="text.secondary"
+                                    fontWeight="medium"
+                                    borderRight="1px solid"
+                                    borderColor="border.subtle"
+                                    textAlign="center"
+                                >
                                     Issuer
                                 </Th>
-                                <Th px={4} py={3}>
+                                <Th
+                                    px={4}
+                                    py={3}
+                                    color="text.secondary"
+                                    fontWeight="medium"
+                                    borderRight="1px solid"
+                                    borderColor="border.subtle"
+                                    textAlign="center"
+                                >
                                     Categories
                                 </Th>
-                                <Th px={4} py={3} textAlign="right">
+                                <Th
+                                    px={4}
+                                    py={3}
+                                    textAlign="center"
+                                    color="text.secondary"
+                                    fontWeight="medium"
+                                    borderRight="1px solid"
+                                    borderColor="border.subtle"
+                                >
                                     Amount
                                 </Th>
-                                <Th px={4} py={3}>
+                                <Th
+                                    px={4}
+                                    py={3}
+                                    color="text.secondary"
+                                    fontWeight="medium"
+                                    borderRight="1px solid"
+                                    borderColor="border.subtle"
+                                    textAlign="center"
+                                >
                                     Timestamp
                                 </Th>
                             </Tr>
                         </Thead>
-                        <Tbody>
-                            {receipts.map((receipt) => {
+                        <Tbody bg="bg.table">
+                            {receipts.map((receipt, idx) => {
                                 const isSelected = receipt.id === selectedId;
                                 return (
                                     <Tr
                                         key={receipt.id}
                                         cursor="pointer"
                                         borderTop="1px solid"
-                                        borderColor="var(--border)"
+                                        borderColor="border.subtle"
                                         bg={
                                             isSelected
-                                                ? "var(--surface-soft)"
-                                                : "transparent"
+                                                ? "bg.row"
+                                                : idx % 2 === 0
+                                                  ? "bg.table"
+                                                  : "bg.row"
                                         }
                                         _hover={{
-                                            bg: "var(--surface-soft)",
+                                            bg: "bg.row",
                                         }}
                                         onClick={() => onSelect(receipt)}
                                     >
@@ -245,33 +296,44 @@ export function ReceiptsTable({
                                             px={4}
                                             py={3}
                                             maxW="180px"
-                                            fontWeight="semibold"
+                                            border="none"
+                                            borderRight="1px solid"
+                                            borderColor="border.subtle"
+                                            textAlign="left"
                                         >
-                                            <Text noOfLines={1}>
-                                                {receipt.merchant}
+                                            <Text
+                                                noOfLines={1}
+                                                fontWeight="semibold"
+                                                color="text.primary"
+                                                title={receipt.merchant}
+                                            >
+                                                {toTitleCase(receipt.merchant)}
                                             </Text>
                                         </Td>
                                         <Td
                                             px={4}
                                             py={3}
                                             maxW="160px"
-                                            color="var(--muted)"
+                                            border="none"
+                                            borderRight="1px solid"
+                                            borderColor="border.subtle"
+                                            textAlign="center"
                                         >
-                                            <Text noOfLines={1}>
-                                                {receipt.owner}
-                                            </Text>
-                                        </Td>
-                                        <Td
-                                            px={4}
-                                            py={3}
-                                            maxW="160px"
-                                            color="var(--muted)"
-                                        >
-                                            <Text noOfLines={1}>
+                                            <Text
+                                                noOfLines={1}
+                                                color="text.secondary"
+                                            >
                                                 {receipt.issuer}
                                             </Text>
                                         </Td>
-                                        <Td px={4} py={3}>
+                                        <Td
+                                            px={4}
+                                            py={3}
+                                            border="none"
+                                            borderRight="1px solid"
+                                            borderColor="border.subtle"
+                                            textAlign="center"
+                                        >
                                             <Flex wrap="wrap" gap={1}>
                                                 {receipt.categories?.map(
                                                     (cat) => (
@@ -280,8 +342,8 @@ export function ReceiptsTable({
                                                             rounded="full"
                                                             px={2}
                                                             py={0.5}
-                                                            bg="var(--surface-soft)"
-                                                            color="var(--foreground)"
+                                                            bg="bg.subtle"
+                                                            color="text.primary"
                                                             fontSize="xs"
                                                         >
                                                             {cat}
@@ -293,20 +355,58 @@ export function ReceiptsTable({
                                         <Td
                                             px={4}
                                             py={3}
-                                            textAlign="right"
+                                            textAlign="center"
                                             fontWeight="semibold"
+                                            border="none"
+                                            fontFamily="mono"
+                                            color={
+                                                receipt.amount < 0
+                                                    ? "status.success"
+                                                    : "text.primary"
+                                            }
+                                            borderRight="1px solid"
+                                            borderColor="border.subtle"
                                         >
-                                            {convertAmount(receipt)}
+                                            {receipt.amount < 0 ? (
+                                                <Badge
+                                                    rounded="full"
+                                                    px={2}
+                                                    py={1}
+                                                    bg="status.success"
+                                                    color="bg.base"
+                                                    fontWeight="semibold"
+                                                >
+                                                    -
+                                                    {convertAmount({
+                                                        ...receipt,
+                                                        amount: Math.abs(
+                                                            receipt.amount,
+                                                        ),
+                                                    })}
+                                                </Badge>
+                                            ) : (
+                                                convertAmount(receipt)
+                                            )}
                                             <Text
                                                 as="span"
                                                 ml={2}
                                                 fontSize="xs"
-                                                color="var(--muted)"
+                                                color="text.muted"
+                                                fontWeight="normal"
+                                                fontFamily="mono"
                                             >
                                                 {formatOriginalAmount(receipt)}
                                             </Text>
                                         </Td>
-                                        <Td px={4} py={3} color="var(--muted)">
+                                        <Td
+                                            px={4}
+                                            py={3}
+                                            color="text.secondary"
+                                            border="none"
+                                            borderRight="1px solid"
+                                            borderColor="border.subtle"
+                                            textAlign="center"
+                                        >
                                             {formatDateTime(receipt.timestamp, {
                                                 month: "short",
                                                 day: "numeric",

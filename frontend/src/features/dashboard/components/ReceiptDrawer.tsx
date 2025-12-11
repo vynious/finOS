@@ -162,9 +162,6 @@ export function ReceiptDrawer({
                     <Text fontSize="sm" color="var(--muted)">
                         {receipt.issuer}
                     </Text>
-                    <Text fontSize="xs" color="var(--muted)">
-                        {receipt.owner}
-                    </Text>
                     <Stack mt={4} spacing={1} color="var(--muted)">
                         <Text
                             fontSize="3xl"

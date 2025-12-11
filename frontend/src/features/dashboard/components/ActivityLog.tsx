@@ -67,9 +67,9 @@ export function ActivityLog({ entries }: ActivityLogProps) {
                     populate this timeline.
                 </Box>
             ) : (
-                <Stack as="ol" spacing={4}>
+                <Stack spacing={4}>
                     {entries.map((event, idx) => (
-                        <Box key={event.id} position="relative" pl={5} as="li">
+                        <Box key={event.id} position="relative" pl={5}>
                             {idx !== entries.length - 1 && (
                                 <Box
                                     position="absolute"

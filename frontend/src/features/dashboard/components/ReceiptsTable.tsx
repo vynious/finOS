@@ -52,21 +52,6 @@ export function ReceiptsTable({
         [convert, format, supportedSet],
     );
 
-    const formatOriginalAmount = useCallback((receipt: Receipt) => {
-        const currencyCode = (receipt.currency ?? "USD").toUpperCase();
-        try {
-            return new Intl.NumberFormat(undefined, {
-                style: "currency",
-                currency: currencyCode,
-            }).format(receipt.amount);
-        } catch {
-            return new Intl.NumberFormat(undefined, {
-                style: "currency",
-                currency: "USD",
-            }).format(receipt.amount);
-        }
-    }, []);
-
     const toTitleCase = (value: string) =>
         value
             .toLowerCase()
@@ -167,13 +152,6 @@ export function ReceiptsTable({
                                     fontFamily="mono"
                                 >
                                     {convertAmount(receipt)}
-                                </Text>
-                                <Text
-                                    fontSize="xs"
-                                    color="text.muted"
-                                    fontFamily="mono"
-                                >
-                                    {formatOriginalAmount(receipt)}
                                 </Text>
                             </Box>
                         </Flex>
@@ -367,36 +345,7 @@ export function ReceiptsTable({
                                             borderRight="1px solid"
                                             borderColor="border.subtle"
                                         >
-                                            {receipt.amount < 0 ? (
-                                                <Badge
-                                                    rounded="full"
-                                                    px={2}
-                                                    py={1}
-                                                    bg="status.success"
-                                                    color="bg.base"
-                                                    fontWeight="semibold"
-                                                >
-                                                    -
-                                                    {convertAmount({
-                                                        ...receipt,
-                                                        amount: Math.abs(
-                                                            receipt.amount,
-                                                        ),
-                                                    })}
-                                                </Badge>
-                                            ) : (
-                                                convertAmount(receipt)
-                                            )}
-                                            <Text
-                                                as="span"
-                                                ml={2}
-                                                fontSize="xs"
-                                                color="text.muted"
-                                                fontWeight="normal"
-                                                fontFamily="mono"
-                                            >
-                                                {formatOriginalAmount(receipt)}
-                                            </Text>
+                                            {convertAmount(receipt)}
                                         </Td>
                                         <Td
                                             px={4}

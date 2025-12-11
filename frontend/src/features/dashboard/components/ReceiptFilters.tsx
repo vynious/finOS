@@ -4,7 +4,6 @@ import { useMemo } from "react";
 
 import type { DateRange, ReceiptFilters } from "@/types";
 import {
-    Badge,
     Box,
     Button,
     Flex,

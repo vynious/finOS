@@ -441,36 +441,6 @@ export function AppShell({
                                             }
                                         />
                                     </HStack>
-                                    <HStack
-                                        spacing={2}
-                                        rounded="full"
-                                        border="1px solid"
-                                        borderColor="border.subtle"
-                                        bg="bg.subtle"
-                                        px={3}
-                                        py={1.5}
-                                    >
-                                        <Flex
-                                            align="center"
-                                            justify="center"
-                                            w={7}
-                                            h={7}
-                                            rounded="full"
-                                            bg="accent.primary"
-                                            color="bg.base"
-                                            fontSize="sm"
-                                        >
-                                            {initials}
-                                        </Flex>
-                                        <Box>
-                                            <Text
-                                                fontSize="xs"
-                                                color="text.muted"
-                                            >
-                                                Signed in
-                                            </Text>
-                                        </Box>
-                                    </HStack>
                                 </HStack>
                             )}
                         </HStack>

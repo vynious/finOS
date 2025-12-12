@@ -92,7 +92,30 @@ export function useSession() {
         window.location.href = `${config.apiBaseUrl}/auth/google/login`;
     }, []);
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
+        console.log(state);
+        const email =
+            state.profile?.email ??
+            state.email ??
+            window.localStorage.getItem(LOCAL_EMAIL_KEY);
+
+        try {
+            await apiFetch<ApiResponse<null>>("/auth/logout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email,
+                    user_id: email,
+                    provider: "google",
+                }),
+            });
+        } catch (err) {
+            // TODO(shawn): surface logout failure to the user if backend requires it.
+            console.error("Logout request failed", err);
+        }
+
         window.localStorage.removeItem(LOCAL_EMAIL_KEY);
         setState({
             email: null,
@@ -102,7 +125,7 @@ export function useSession() {
             loading: false,
             error: null,
         });
-    }, []);
+    }, [state.email, state.profile?.email]);
 
     return {
         ...state,

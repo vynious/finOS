@@ -230,4 +230,8 @@ impl AuthService {
             }
         }
     }
+
+    pub async fn delete_token(&self, user_id: &str, provider: &str) -> Result<()> {
+        Ok(self.token_store.delete(user_id, provider).await?)
+    }
 }

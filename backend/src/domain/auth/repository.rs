@@ -10,6 +10,7 @@ pub trait TokenStore: Send + Sync {
     async fn store(&self, rec: TokenRecord) -> anyhow::Result<TokenRecord>;
     async fn get(&self, user_id: &str, provider: &str) -> anyhow::Result<Option<TokenRecord>>;
     async fn update(&self, rec: TokenRecord) -> anyhow::Result<TokenRecord>;
+    async fn delete(&self, user_id: &str, provider: &str) -> anyhow::Result<()>;
 }
 
 #[derive(Clone)]
@@ -43,5 +44,16 @@ impl TokenStore for MongoTokenStore {
         let update = doc! { "$set": bson::to_document(&rec)? };
         self.collection.update_one(filter, update).await?;
         Ok(rec)
+    }
+
+    async fn delete(&self, user_id: &str, provider: &str) -> anyhow::Result<()> {
+        match self
+            .collection
+            .delete_one(doc! { "user_id": user_id, "provider": provider })
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(anyhow::Error::new(e)),
+        }
     }
 }

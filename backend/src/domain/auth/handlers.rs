@@ -5,6 +5,7 @@ use axum::{
     http::{self, Response, StatusCode},
     middleware::Next,
     response::{IntoResponse, Redirect},
+    Json,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use cookie::SameSite;
@@ -14,7 +15,7 @@ use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
 use crate::{
-    common::app_state::AppState,
+    common::{api_response::ApiResponse, app_state::AppState},
     domain::auth::models::TokenRecord,
 };
 
@@ -31,6 +32,14 @@ struct GoogleUserInfo {
     name: Option<String>,
     #[serde(default)]
     email_verified: bool,
+}
+
+#[derive(Deserialize)]
+pub struct LogoutRequest {
+    email: String,
+    #[serde(default)]
+    user_id: Option<String>,
+    provider: String,
 }
 
 pub async fn google_login(
@@ -212,4 +221,46 @@ fn extract_session_cookie(req: &Request) -> Option<String> {
                 }
             })
         })
+}
+
+pub async fn logout(
+    State(app): State<Arc<AppState>>,
+    jar: CookieJar,
+    Json(payload): Json<LogoutRequest>,
+) -> Result<(CookieJar, Json<ApiResponse<String>>), (StatusCode, String)> {
+    let email = if !payload.email.is_empty() {
+        payload.email
+    } else if let Some(user_id) = payload.user_id {
+        user_id
+    } else {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Missing email in logout request".to_string(),
+        ));
+    };
+
+    let cleared_cookie = Cookie::build(("session", ""))
+        .http_only(true)
+        .secure(false)
+        .same_site(SameSite::Lax)
+        .path("/")
+        .expires(OffsetDateTime::now_utc() - Duration::days(1))
+        .build();
+
+    let cleared_jar = jar.remove(cleared_cookie);
+
+    match app
+        .auth_service
+        .delete_token(&email, &payload.provider)
+        .await
+    {
+        Ok(_) => Ok((
+            cleared_jar,
+            Json(ApiResponse::success("Logged out successfully".to_string())),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to logout: {e}"),
+        )),
+    }
 }

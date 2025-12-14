@@ -21,6 +21,50 @@ import MailBankGraph, {
 import { config } from "@/lib/config";
 import { useThemeMode } from "@/context/theme-mode-context";
 
+const TIMELINE_BARS = [
+    { h: 48, c: "#93c5fd" },
+    { h: 36, c: "#a78bfa" },
+    { h: 64, c: "#60a5fa" },
+    { h: 28, c: "#38bdf8" },
+    { h: 56, c: "#f472b6" },
+] as const;
+
+const TABLE_ROWS = [
+    ["Oct 12", "Lyft", "Transport", "$24.10"],
+    ["Oct 12", "Stripe", "SaaS", "$89.00"],
+    ["Oct 10", "Sweetgreen", "Food", "$14.25"],
+    ["Oct 09", "Delta", "Travel", "$320.00"],
+] as const;
+
+const TOTAL_BARS = [
+    { label: "Jul", h: 58, c: "#a5b4fc" },
+    { label: "Aug", h: 82, c: "#60a5fa" },
+    { label: "Sep", h: 70, c: "#22d3ee" },
+    { label: "Oct", h: 96, c: "#f472b6" },
+] as const;
+
+const TRUST_ITEMS = [
+    "Read-only Gmail access",
+    "No email content stored",
+    "Disconnect anytime",
+    "No ads. No selling data.",
+] as const;
+
+const DIFFERENTIATORS = [
+    {
+        title: "Source-first",
+        body: "Gmail is the source of truth — not fragile bank scraping.",
+    },
+    {
+        title: "Normalization layer",
+        body: "Receipts are parsed, categorized, and converted into clean structured data.",
+    },
+    {
+        title: "Single control plane",
+        body: "One place to inspect, export, and build on top of your spend data.",
+    },
+] as const;
+
 export function HeroSection() {
     const [activationTrigger, setActivationTrigger] = useState(0);
     const graphRef = useRef<MailBankGraphHandle | null>(null);
@@ -51,6 +95,20 @@ export function HeroSection() {
     const strongText = isLight ? "rgba(16,19,34,0.9)" : "rgba(255,255,255,0.9)";
     const midText = isLight ? "rgba(33,37,51,0.7)" : "rgba(255,255,255,0.78)";
     const diffTitleColor = isLight ? "#0b0b0b" : strongText;
+    const previewCardStyles = {
+        border: surfaceBorder,
+        bg: surfaceBg,
+        borderRadius: "xl",
+        boxShadow: `inset 0 1px 0 ${
+            isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.05)"
+        }, ${surfaceShadow}`,
+        p: 5,
+    } as const;
+    const insetBoxStyles = {
+        border: surfaceBorder,
+        borderRadius: "lg",
+        bg: insetBg,
+    } as const;
 
     return (
         <Box
@@ -224,20 +282,12 @@ export function HeroSection() {
                     </VStack>
 
                     <SimpleGrid columns={{ base: 1, md: 3 }} gap={5}>
-                        <Box
-                            border={surfaceBorder}
-                            bg={surfaceBg}
-                            borderRadius="xl"
-                            boxShadow={`inset 0 1px 0 ${isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.05)"}, ${surfaceShadow}`}
-                            p={5}
-                        >
+                        <Box {...previewCardStyles}>
                             <Text fontWeight="medium" color={strongText} mb={4}>
                                 Unified spend timeline
                             </Text>
                             <Box
-                                border={surfaceBorder}
-                                borderRadius="lg"
-                                bg={insetBg}
+                                {...insetBoxStyles}
                                 p={4}
                                 mb={4}
                                 position="relative"
@@ -261,13 +311,7 @@ export function HeroSection() {
                                     align="flex-end"
                                     pos="relative"
                                 >
-                                    {[
-                                        { h: 48, c: "#93c5fd" },
-                                        { h: 36, c: "#a78bfa" },
-                                        { h: 64, c: "#60a5fa" },
-                                        { h: 28, c: "#38bdf8" },
-                                        { h: 56, c: "#f472b6" },
-                                    ].map((bar, idx) => (
+                                    {TIMELINE_BARS.map((bar, idx) => (
                                         <Box key={idx} textAlign="center">
                                             <Box
                                                 w="6px"
@@ -306,24 +350,11 @@ export function HeroSection() {
                             </Text>
                         </Box>
 
-                        <Box
-                            border={surfaceBorder}
-                            bg={surfaceBg}
-                            borderRadius="xl"
-                            boxShadow={`inset 0 1px 0 ${isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.05)"}, ${surfaceShadow}`}
-                            p={5}
-                        >
+                        <Box {...previewCardStyles}>
                             <Text fontWeight="medium" color={strongText} mb={4}>
                                 Auto-categorized transactions
                             </Text>
-                            <Box
-                                border={surfaceBorder}
-                                borderRadius="lg"
-                                bg={insetBg}
-                                p={3}
-                                mb={4}
-                                fontSize="sm"
-                            >
+                            <Box {...insetBoxStyles} p={3} mb={4} fontSize="sm">
                                 <HStack
                                     color={midText}
                                     fontWeight="semibold"
@@ -342,12 +373,7 @@ export function HeroSection() {
                                         Amount
                                     </Box>
                                 </HStack>
-                                {[
-                                    ["Oct 12", "Lyft", "Transport", "$24.10"],
-                                    ["Oct 12", "Stripe", "SaaS", "$89.00"],
-                                    ["Oct 10", "Sweetgreen", "Food", "$14.25"],
-                                    ["Oct 09", "Delta", "Travel", "$320.00"],
-                                ].map((row, idx) => (
+                                {TABLE_ROWS.map((row, idx) => (
                                     <HStack
                                         key={row[0] + row[1]}
                                         spacing={3}
@@ -389,20 +415,12 @@ export function HeroSection() {
                             </Text>
                         </Box>
 
-                        <Box
-                            border={surfaceBorder}
-                            bg={surfaceBg}
-                            borderRadius="xl"
-                            boxShadow={`inset 0 1px 0 ${isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.05)"}, ${surfaceShadow}`}
-                            p={5}
-                        >
+                        <Box {...previewCardStyles}>
                             <Text fontWeight="medium" color={strongText} mb={4}>
                                 Monthly totals across all accounts
                             </Text>
                             <Box
-                                border={surfaceBorder}
-                                borderRadius="lg"
-                                bg={insetBg}
+                                {...insetBoxStyles}
                                 p={4}
                                 mb={4}
                                 minH="140px"
@@ -410,12 +428,7 @@ export function HeroSection() {
                                 alignItems="flex-end"
                                 gap={3}
                             >
-                                {[
-                                    { label: "Jul", h: 58, c: "#a5b4fc" },
-                                    { label: "Aug", h: 82, c: "#60a5fa" },
-                                    { label: "Sep", h: 70, c: "#22d3ee" },
-                                    { label: "Oct", h: 96, c: "#f472b6" },
-                                ].map((bar) => (
+                                {TOTAL_BARS.map((bar) => (
                                     <Box
                                         key={bar.label}
                                         flex="1"
@@ -472,12 +485,7 @@ export function HeroSection() {
                         color={midText}
                         fontSize={{ base: "sm", md: "md" }}
                     >
-                        {[
-                            "Read-only Gmail access",
-                            "No email content stored",
-                            "Disconnect anytime",
-                            "No ads. No selling data.",
-                        ].map((item) => (
+                        {TRUST_ITEMS.map((item) => (
                             <HStack key={item} spacing={2} minW="max-content">
                                 <Box
                                     as="svg"
@@ -532,20 +540,7 @@ export function HeroSection() {
                         Why FinOS is different
                     </Heading>
                     <SimpleGrid columns={{ base: 1, md: 3 }} gap={6} w="full">
-                        {[
-                            {
-                                title: "Source-first",
-                                body: "Gmail is the source of truth — not fragile bank scraping.",
-                            },
-                            {
-                                title: "Normalization layer",
-                                body: "Receipts are parsed, categorized, and converted into clean structured data.",
-                            },
-                            {
-                                title: "Single control plane",
-                                body: "One place to inspect, export, and build on top of your spend data.",
-                            },
-                        ].map((item) => (
+                        {DIFFERENTIATORS.map((item) => (
                             <Box
                                 key={item.title}
                                 border={surfaceBorder}

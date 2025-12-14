@@ -6,12 +6,10 @@ It connects to your Gmail inbox, extracts purchase receipts with the help of an 
 ---
 
 ## Visuals
-
-![FinOS landing](docs/landing.png)
+![FinOS flow](docs/diagram.png)
+![FinOS features](docs/features.png)
 ![FinOS dashboard preview](docs/dashboard.png)
-
-![Receipt ingestion and sync status](docs/txn_and_sync_status.png)
-
+> yeah i know... i spend quite alot :,)
 
 ---
 

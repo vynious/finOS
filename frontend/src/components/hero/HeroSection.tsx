@@ -175,15 +175,14 @@ export function HeroSection() {
                             lineHeight="1.1"
                             letterSpacing="-0.02em"
                         >
-                            Gmail receipts to bank data, orchestrated by FinOS.
+                            Gmail receipts to bank data
                         </Heading>
                         <Text
                             maxW="52ch"
                             fontSize={{ base: "sm", md: "md" }}
                             color="var(--muted)"
                         >
-                            A minimal wiring path from Gmail into the banks you
-                            trust, converging in a single FinOS control plane.
+                            converging in a single control plane.
                         </Text>
                     </VStack>
 

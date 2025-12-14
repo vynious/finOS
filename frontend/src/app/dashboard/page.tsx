@@ -9,13 +9,13 @@ import { Box, Button, Flex, Stack, Text } from "@chakra-ui/react";
 import {
     ActivityLog,
     type ActivityEvent,
-} from "@/features/dashboard/components/ActivityLog";
-import { InsightsGrid } from "@/features/dashboard/components/InsightsGrid";
-import { ReceiptDrawer } from "@/features/dashboard/components/ReceiptDrawer";
-import { ReceiptFilters } from "@/features/dashboard/components/ReceiptFilters";
-import { ReceiptsTable } from "@/features/dashboard/components/ReceiptsTable";
-import { SettingsPanel } from "@/features/dashboard/components/SettingsPanel";
-import { SyncPanel } from "@/features/dashboard/components/SyncPanel";
+} from "@/components/dashboard/ActivityLog";
+import { InsightsGrid } from "@/components/dashboard/InsightsGrid";
+import { ReceiptDrawer } from "@/components/dashboard/ReceiptDrawer";
+import { ReceiptFilters } from "@/components/dashboard/ReceiptFilters";
+import { ReceiptsTable } from "@/components/dashboard/ReceiptsTable";
+import { SettingsPanel } from "@/components/dashboard/SettingsPanel";
+import { SyncPanel } from "@/components/dashboard/SyncPanel";
 import { useCurrency } from "@/context/currency-context";
 import { useSessionContext } from "@/context/session-context";
 import { useReceipts } from "@/hooks/useReceipts";

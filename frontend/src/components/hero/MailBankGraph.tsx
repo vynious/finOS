@@ -23,6 +23,7 @@ import {
     type MailEdge,
     type MailNode,
 } from "./mailBankGraphConfig";
+import { useThemeMode } from "@/context/theme-mode-context";
 
 export type MailBankGraphHandle = {
     startActivation: (source?: "cta" | "demo") => void;
@@ -81,7 +82,13 @@ const bezierPath = (
 const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
 
-const GmailIcon = ({ accent }: { accent: string }) => (
+const GmailIcon = ({
+    accent,
+    tone,
+}: {
+    accent: string;
+    tone: "light" | "dark";
+}) => (
     <chakra.svg
         viewBox="0 0 64 64"
         width="42px"
@@ -95,7 +102,9 @@ const GmailIcon = ({ accent }: { accent: string }) => (
             width="44"
             height="32"
             rx="6"
-            fill="rgba(255,255,255,0.06)"
+            fill={
+                tone === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)"
+            }
             stroke={accent}
             strokeWidth="2"
         />
@@ -110,7 +119,13 @@ const GmailIcon = ({ accent }: { accent: string }) => (
     </chakra.svg>
 );
 
-const BankIcon = ({ active }: { active: boolean }) => (
+const BankIcon = ({
+    active,
+    tone,
+}: {
+    active: boolean;
+    tone: "light" | "dark";
+}) => (
     <chakra.svg
         viewBox="0 0 64 64"
         width="32px"
@@ -124,8 +139,18 @@ const BankIcon = ({ active }: { active: boolean }) => (
             width="36"
             height="26"
             rx="7"
-            fill={active ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.08)"}
-            stroke="rgba(255,255,255,0.22)"
+            fill={
+                active
+                    ? tone === "light"
+                        ? "rgba(0,0,0,0.08)"
+                        : "rgba(255,255,255,0.16)"
+                    : tone === "light"
+                      ? "rgba(0,0,0,0.04)"
+                      : "rgba(255,255,255,0.08)"
+            }
+            stroke={
+                tone === "light" ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.22)"
+            }
             strokeWidth="2"
         />
         <rect
@@ -134,7 +159,9 @@ const BankIcon = ({ active }: { active: boolean }) => (
             width="8"
             height="14"
             rx="3"
-            fill="rgba(255,255,255,0.22)"
+            fill={
+                tone === "light" ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.22)"
+            }
         />
         <rect
             x="32"
@@ -142,12 +169,20 @@ const BankIcon = ({ active }: { active: boolean }) => (
             width="8"
             height="14"
             rx="3"
-            fill="rgba(255,255,255,0.22)"
+            fill={
+                tone === "light" ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.22)"
+            }
         />
     </chakra.svg>
 );
 
-const FinOSIcon = ({ glow }: { glow: boolean }) => (
+const FinOSIcon = ({
+    glow,
+    tone,
+}: {
+    glow: boolean;
+    tone: "light" | "dark";
+}) => (
     <chakra.svg
         viewBox="0 0 64 64"
         width="46px"
@@ -157,14 +192,30 @@ const FinOSIcon = ({ glow }: { glow: boolean }) => (
     >
         <path
             d="M12 46 L32 14 L52 46 Z"
-            fill={glow ? "url(#finosGradient)" : "rgba(255,255,255,0.12)"}
-            stroke="rgba(255,255,255,0.36)"
+            fill={
+                glow
+                    ? "url(#finosGradient)"
+                    : tone === "light"
+                      ? "rgba(0,0,0,0.1)"
+                      : "rgba(255,255,255,0.12)"
+            }
+            stroke={
+                tone === "light" ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.36)"
+            }
             strokeWidth="2"
         />
         <defs>
             <linearGradient id="finosGradient" x1="12" y1="14" x2="52" y2="46">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.85" />
-                <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.75" />
+                <stop
+                    offset="0%"
+                    stopColor={tone === "light" ? "#7c3aed" : "#8b5cf6"}
+                    stopOpacity="0.85"
+                />
+                <stop
+                    offset="100%"
+                    stopColor={tone === "light" ? "#0ea5e9" : "#22d3ee"}
+                    stopOpacity="0.75"
+                />
             </linearGradient>
         </defs>
     </chakra.svg>
@@ -188,10 +239,13 @@ const NodeTile = ({
     onTrigger?: () => void;
 }) => {
     const isBank = node.kind === "bank";
+    const { mode } = useThemeMode();
+    const tone: "light" | "dark" = mode === "light" ? "light" : "dark";
     const interactive = node.kind !== "bank";
     const baseScale = isBank ? 1 : 1;
     const hoverScale = isBank ? 1.05 : isActive || isGlow ? 1.03 : 1.01;
-    const accent = "rgba(149,134,255,0.8)";
+    const accent =
+        tone === "light" ? "rgba(124,58,237,0.78)" : "rgba(149,134,255,0.8)";
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
         if (!interactive) return;
@@ -203,11 +257,11 @@ const NodeTile = ({
 
     const content =
         node.kind === "gmail" ? (
-            <GmailIcon accent={accent} />
+            <GmailIcon accent={accent} tone={tone} />
         ) : node.kind === "bank" ? (
-            <BankIcon active={isActive} />
+            <BankIcon active={isActive} tone={tone} />
         ) : (
-            <FinOSIcon glow={isGlow || isActive} />
+            <FinOSIcon glow={isGlow || isActive} tone={tone} />
         );
 
     const borderRadius =
@@ -219,35 +273,59 @@ const NodeTile = ({
 
     const bg =
         node.kind === "gmail"
-            ? "linear-gradient(160deg, rgba(255,255,255,0.08), rgba(10,14,28,0.75))"
+            ? tone === "light"
+                ? "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(238,240,255,0.85))"
+                : "linear-gradient(160deg, rgba(255,255,255,0.08), rgba(10,14,28,0.75))"
             : node.kind === "finos"
-              ? "linear-gradient(150deg, rgba(255,255,255,0.08), rgba(9,11,20,0.85))"
+              ? tone === "light"
+                  ? "linear-gradient(150deg, rgba(255,255,255,0.9), rgba(236,239,255,0.9))"
+                  : "linear-gradient(150deg, rgba(255,255,255,0.08), rgba(9,11,20,0.85))"
               : isActive
-                ? "linear-gradient(150deg, rgba(255,255,255,0.12), rgba(6,8,16,0.92))"
-                : "linear-gradient(150deg, rgba(255,255,255,0.06), rgba(5,7,14,0.9))";
+                ? tone === "light"
+                    ? "linear-gradient(150deg, rgba(0,0,0,0.06), rgba(246,248,255,0.95))"
+                    : "linear-gradient(150deg, rgba(255,255,255,0.12), rgba(6,8,16,0.92))"
+                : tone === "light"
+                  ? "linear-gradient(150deg, rgba(0,0,0,0.04), rgba(247,249,255,0.9))"
+                  : "linear-gradient(150deg, rgba(255,255,255,0.06), rgba(5,7,14,0.9))";
 
     const border =
         node.kind === "gmail"
-            ? "1px solid rgba(149,134,255,0.65)"
+            ? tone === "light"
+                ? "1px solid rgba(124,58,237,0.5)"
+                : "1px solid rgba(149,134,255,0.65)"
             : node.kind === "bank"
               ? isActive
-                  ? "1px solid rgba(255,255,255,0.16)"
-                  : "1px solid rgba(255,255,255,0.08)"
+                  ? tone === "light"
+                      ? "1px solid rgba(0,0,0,0.12)"
+                      : "1px solid rgba(255,255,255,0.16)"
+                  : tone === "light"
+                    ? "1px solid rgba(0,0,0,0.08)"
+                    : "1px solid rgba(255,255,255,0.08)"
               : isGlow
-                ? "1px solid rgba(125,211,252,0.7)"
-                : "1px solid rgba(255,255,255,0.1)";
+                ? tone === "light"
+                    ? "1px solid rgba(14,165,233,0.6)"
+                    : "1px solid rgba(125,211,252,0.7)"
+                : tone === "light"
+                  ? "1px solid rgba(0,0,0,0.12)"
+                  : "1px solid rgba(255,255,255,0.1)";
 
     const shadow =
         node.kind === "gmail"
             ? isActive
-                ? "0 18px 55px -28px rgba(96,165,250,0.55)"
+                ? tone === "light"
+                    ? "0 20px 45px -30px rgba(124,58,237,0.4)"
+                    : "0 18px 55px -28px rgba(96,165,250,0.55)"
                 : "0 16px 48px -34px rgba(0,0,0,0.9)"
             : node.kind === "bank"
               ? isActive
-                  ? "0 16px 42px -32px rgba(0,0,0,0.85)"
+                  ? tone === "light"
+                      ? "0 14px 38px -30px rgba(0,0,0,0.25)"
+                      : "0 16px 42px -32px rgba(0,0,0,0.85)"
                   : "0 12px 32px -30px rgba(0,0,0,0.8)"
               : isGlow
-                ? "0 18px 55px -28px rgba(34,211,238,0.8)"
+                ? tone === "light"
+                    ? "0 18px 45px -30px rgba(14,165,233,0.45)"
+                    : "0 18px 55px -28px rgba(34,211,238,0.8)"
                 : "0 16px 48px -34px rgba(0,0,0,0.9)";
 
     return (
@@ -298,7 +376,9 @@ const NodeTile = ({
                                   inset: "-8px",
                                   borderRadius: "26px",
                                   background:
-                                      "linear-gradient(145deg, rgba(149,134,255,0.35), rgba(96,165,250,0.18))",
+                                      tone === "light"
+                                          ? "linear-gradient(145deg, rgba(124,58,237,0.3), rgba(96,165,250,0.2))"
+                                          : "linear-gradient(145deg, rgba(149,134,255,0.35), rgba(96,165,250,0.18))",
                                   opacity: isActive || isGlow ? 0.9 : 0.55,
                                   filter: "blur(1px)",
                                   zIndex: 0,
@@ -319,6 +399,8 @@ const MailBankGraph = forwardRef<MailBankGraphHandle, MailBankGraphProps>(
         const containerRef = useRef<HTMLDivElement | null>(null);
         const size = useContainerSize(containerRef);
         const prefersReducedMotion = usePrefersReducedMotion();
+        const { mode } = useThemeMode();
+        const isLight = mode === "light";
         const [phase, setPhase] = useState<Phase>("idle");
         const [drawnEdges, setDrawnEdges] = useState<Set<string>>(new Set());
         const [activatedBanks, setActivatedBanks] = useState<Set<string>>(
@@ -558,35 +640,35 @@ const MailBankGraph = forwardRef<MailBankGraphHandle, MailBankGraphProps>(
             };
         };
 
+        const graphBg = "inherit";
+        const gmailStroke = isLight
+            ? "rgba(55,65,81,0.55)"
+            : "rgba(210,214,230,0.8)";
+        const bankStrokePaletteLight = [
+            "#5b6c8a",
+            "#5f7adb",
+            "#4895e6",
+            "#6c6ff7",
+        ];
+
         return (
             <Box
                 ref={containerRef}
                 position="relative"
                 w="full"
                 h="full"
-                bg="linear-gradient(135deg, rgba(6,8,15,0.9), rgba(7,12,24,0.92))"
-                border="1px solid rgba(255,255,255,0.08)"
-                borderRadius="22px"
+                bg={graphBg}
+                border="none"
+                borderRadius="0"
                 overflow="hidden"
-                boxShadow="0 30px 80px rgba(0,0,0,0.62), inset 0 1px 0 rgba(255,255,255,0.04)"
-                _before={{
-                    content: '""',
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                        "radial-gradient(70% 70% at 25% 25%, rgba(255,255,255,0.06), transparent)",
-                    pointerEvents: "none",
-                }}
-                _after={{
-                    content: '""',
-                    position: "absolute",
-                    inset: "-20%",
-                    background:
-                        "radial-gradient(50% 35% at 60% 50%, rgba(34,211,238,0.06), transparent)",
-                    pointerEvents: "none",
-                }}
+                boxShadow="none"
             >
-                <Box position="absolute" inset={0} pointerEvents="none">
+                <Box
+                    position="absolute"
+                    inset={0}
+                    pointerEvents="none"
+                    bg="inherit"
+                >
                     <svg
                         width="100%"
                         height="100%"
@@ -598,12 +680,29 @@ const MailBankGraph = forwardRef<MailBankGraphHandle, MailBankGraphProps>(
                             if (!path) return null;
                             const dash = dashProps(edge);
                             const { style: dashStyle, ...dashRest } = dash;
+                            const bankIdx =
+                                edge.kind === "bankToFinOS"
+                                    ? bankEdges.findIndex(
+                                          (b) => b.id === edge.id,
+                                      )
+                                    : -1;
+                            const strokeColor =
+                                edge.kind === "gmailToBank"
+                                    ? isLight
+                                        ? gmailStroke
+                                        : edge.color
+                                    : isLight && bankIdx >= 0
+                                      ? (bankStrokePaletteLight[bankIdx] ??
+                                        bankStrokePaletteLight[
+                                            bankStrokePaletteLight.length - 1
+                                        ])
+                                      : edge.color;
                             return (
                                 <path
                                     key={edge.id}
                                     d={path}
                                     fill="none"
-                                    stroke={edge.color}
+                                    stroke={strokeColor}
                                     strokeWidth={edgeWidth(edge)}
                                     strokeLinecap="round"
                                     opacity={edgeOpacity(edge)}

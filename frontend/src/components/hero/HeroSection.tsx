@@ -5,6 +5,7 @@ import {
     AspectRatio,
     Box,
     Button,
+    IconButton,
     Container,
     HStack,
     Heading,
@@ -18,14 +19,38 @@ import MailBankGraph, {
     type MailBankGraphHandle,
 } from "@/components/hero/MailBankGraph";
 import { config } from "@/lib/config";
+import { useThemeMode } from "@/context/theme-mode-context";
 
 export function HeroSection() {
     const [activationTrigger, setActivationTrigger] = useState(0);
     const graphRef = useRef<MailBankGraphHandle | null>(null);
+    const { mode, toggle } = useThemeMode();
+    const isLight = mode === "light";
     const triggerActivation = () => {
         setActivationTrigger((tick) => tick + 1);
         graphRef.current?.startActivation("cta");
     };
+
+    const panelBorder = isLight
+        ? "1px solid rgba(0,0,0,0.06)"
+        : "1px solid rgba(255,255,255,0.08)";
+    const panelBg = isLight ? "rgba(255,255,255,0.9)" : "rgba(7,10,18,0.82)";
+    const panelShadow = isLight
+        ? "inset 0 1px 0 rgba(255,255,255,0.7), 0 14px 40px -26px rgba(0,0,0,0.25)"
+        : "inset 0 1px 0 rgba(255,255,255,0.05), 0 34px 90px -70px rgba(0,0,0,0.9)";
+    const surfaceBorder = isLight
+        ? "1px solid rgba(0,0,0,0.05)"
+        : "1px solid rgba(255,255,255,0.06)";
+    const surfaceBg = isLight
+        ? "linear-gradient(170deg, rgba(255,255,255,0.9), rgba(246,248,255,0.9))"
+        : "linear-gradient(170deg, rgba(255,255,255,0.02), rgba(8,10,20,0.95))";
+    const insetBg = isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.02)";
+    const surfaceShadow = isLight
+        ? "0 12px 40px -30px rgba(0,0,0,0.22)"
+        : "0 18px 50px -32px rgba(0,0,0,0.8)";
+    const strongText = isLight ? "rgba(16,19,34,0.9)" : "rgba(255,255,255,0.9)";
+    const midText = isLight ? "rgba(33,37,51,0.7)" : "rgba(255,255,255,0.78)";
+    const diffTitleColor = isLight ? "#0b0b0b" : strongText;
 
     return (
         <Box
@@ -49,6 +74,41 @@ export function HeroSection() {
                 pb={{ base: 12, md: 16 }}
                 position="relative"
             >
+                <Box
+                    position="absolute"
+                    top={{ base: 4, md: 6 }}
+                    right={{ base: 4, md: 6 }}
+                >
+                    <IconButton
+                        aria-label="Toggle theme"
+                        icon={
+                            isLight ? (
+                                <Box as="span" fontSize="lg">
+                                    🌙
+                                </Box>
+                            ) : (
+                                <Box as="span" fontSize="lg">
+                                    ☀️
+                                </Box>
+                            )
+                        }
+                        size="sm"
+                        variant="ghost"
+                        onClick={toggle}
+                        border={panelBorder}
+                        borderRadius="full"
+                        bg={
+                            isLight
+                                ? "rgba(255,255,255,0.8)"
+                                : "rgba(255,255,255,0.05)"
+                        }
+                        _hover={{
+                            bg: isLight
+                                ? "rgba(0,0,0,0.05)"
+                                : "rgba(255,255,255,0.1)",
+                        }}
+                    />
+                </Box>
                 <Stack spacing={{ base: 5, md: 6 }} align="center">
                     <VStack spacing={1} textAlign="center">
                         <Heading
@@ -57,14 +117,15 @@ export function HeroSection() {
                             lineHeight="1.1"
                             letterSpacing="-0.02em"
                         >
-                            Gmail receipts to data
+                            Gmail receipts to bank data, orchestrated by FinOS.
                         </Heading>
                         <Text
                             maxW="52ch"
                             fontSize={{ base: "sm", md: "md" }}
                             color="var(--muted)"
                         >
-                            converging in a single control plane.
+                            A minimal wiring path from Gmail into the banks you
+                            trust, converging in a single FinOS control plane.
                         </Text>
                     </VStack>
 
@@ -75,10 +136,14 @@ export function HeroSection() {
                         px={{ base: 4, md: 6 }}
                         py={{ base: 4, md: 5 }}
                         rounded="2xl"
-                        border="1px solid rgba(255,255,255,0.08)"
-                        bg="rgba(7,10,18,0.82)"
-                        bgGradient="linear(to-b, rgba(255,255,255,0.025), rgba(255,255,255,0))"
-                        boxShadow="inset 0 1px 0 rgba(255,255,255,0.05), 0 34px 90px -70px rgba(0,0,0,0.9)"
+                        border={panelBorder}
+                        bg={panelBg}
+                        bgGradient={
+                            isLight
+                                ? "linear(to-b, rgba(0,0,0,0.02), rgba(255,255,255,0))"
+                                : "linear(to-b, rgba(255,255,255,0.025), rgba(255,255,255,0))"
+                        }
+                        boxShadow={panelShadow}
                         overflow="hidden"
                         position="relative"
                         backdropFilter="blur(10px)"
@@ -160,23 +225,19 @@ export function HeroSection() {
 
                     <SimpleGrid columns={{ base: 1, md: 3 }} gap={5}>
                         <Box
-                            border="1px solid rgba(255,255,255,0.06)"
-                            bg="linear-gradient(170deg, rgba(255,255,255,0.02), rgba(8,10,20,0.95))"
+                            border={surfaceBorder}
+                            bg={surfaceBg}
                             borderRadius="xl"
-                            boxShadow="inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 50px -32px rgba(0,0,0,0.8)"
+                            boxShadow={`inset 0 1px 0 ${isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.05)"}, ${surfaceShadow}`}
                             p={5}
                         >
-                            <Text
-                                fontWeight="medium"
-                                color="rgba(255,255,255,0.9)"
-                                mb={4}
-                            >
+                            <Text fontWeight="medium" color={strongText} mb={4}>
                                 Unified spend timeline
                             </Text>
                             <Box
-                                border="1px solid rgba(255,255,255,0.06)"
+                                border={surfaceBorder}
                                 borderRadius="lg"
-                                bg="rgba(255,255,255,0.02)"
+                                bg={insetBg}
                                 p={4}
                                 mb={4}
                                 position="relative"
@@ -189,7 +250,11 @@ export function HeroSection() {
                                     left={4}
                                     right={4}
                                     h="2px"
-                                    bg="rgba(255,255,255,0.08)"
+                                    bg={
+                                        isLight
+                                            ? "rgba(0,0,0,0.08)"
+                                            : "rgba(255,255,255,0.08)"
+                                    }
                                 />
                                 <HStack
                                     spacing={3}
@@ -214,7 +279,11 @@ export function HeroSection() {
                                             <Box
                                                 w="1px"
                                                 h="14px"
-                                                bg="rgba(255,255,255,0.2)"
+                                                bg={
+                                                    isLight
+                                                        ? "rgba(0,0,0,0.2)"
+                                                        : "rgba(255,255,255,0.2)"
+                                                }
                                                 mt={2}
                                                 mx="auto"
                                             />
@@ -226,7 +295,7 @@ export function HeroSection() {
                                     top={3}
                                     right={4}
                                     fontSize="xs"
-                                    color="rgba(255,255,255,0.6)"
+                                    color={midText}
                                 >
                                     Week
                                 </Text>
@@ -238,33 +307,33 @@ export function HeroSection() {
                         </Box>
 
                         <Box
-                            border="1px solid rgba(255,255,255,0.06)"
-                            bg="linear-gradient(170deg, rgba(255,255,255,0.02), rgba(8,10,20,0.95))"
+                            border={surfaceBorder}
+                            bg={surfaceBg}
                             borderRadius="xl"
-                            boxShadow="inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 50px -32px rgba(0,0,0,0.8)"
+                            boxShadow={`inset 0 1px 0 ${isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.05)"}, ${surfaceShadow}`}
                             p={5}
                         >
-                            <Text
-                                fontWeight="medium"
-                                color="rgba(255,255,255,0.9)"
-                                mb={4}
-                            >
-                                Categorized transactions
+                            <Text fontWeight="medium" color={strongText} mb={4}>
+                                Auto-categorized transactions
                             </Text>
                             <Box
-                                border="1px solid rgba(255,255,255,0.06)"
+                                border={surfaceBorder}
                                 borderRadius="lg"
-                                bg="rgba(255,255,255,0.02)"
+                                bg={insetBg}
                                 p={3}
                                 mb={4}
                                 fontSize="sm"
                             >
                                 <HStack
-                                    color="rgba(255,255,255,0.6)"
+                                    color={midText}
                                     fontWeight="semibold"
                                     spacing={3}
                                     pb={2}
-                                    borderBottom="1px solid rgba(255,255,255,0.04)"
+                                    borderBottom={
+                                        isLight
+                                            ? "1px solid rgba(0,0,0,0.05)"
+                                            : "1px solid rgba(255,255,255,0.04)"
+                                    }
                                 >
                                     <Box flex="1">Date</Box>
                                     <Box flex="1.4">Merchant</Box>
@@ -286,19 +355,15 @@ export function HeroSection() {
                                         borderBottom={
                                             idx === 3
                                                 ? "none"
-                                                : "1px solid rgba(255,255,255,0.03)"
+                                                : isLight
+                                                  ? "1px solid rgba(0,0,0,0.04)"
+                                                  : "1px solid rgba(255,255,255,0.03)"
                                         }
                                     >
-                                        <Box
-                                            flex="1"
-                                            color="rgba(255,255,255,0.78)"
-                                        >
+                                        <Box flex="1" color={midText}>
                                             {row[0]}
                                         </Box>
-                                        <Box
-                                            flex="1.4"
-                                            color="rgba(255,255,255,0.85)"
-                                        >
+                                        <Box flex="1.4" color={strongText}>
                                             {row[1]}
                                         </Box>
                                         <Box
@@ -311,7 +376,7 @@ export function HeroSection() {
                                         <Box
                                             flex="0.8"
                                             textAlign="right"
-                                            color="rgba(255,255,255,0.9)"
+                                            color={strongText}
                                             fontWeight="semibold"
                                         >
                                             {row[3]}
@@ -320,29 +385,24 @@ export function HeroSection() {
                                 ))}
                             </Box>
                             <Text color="var(--muted)" fontSize="sm">
-                                Receipts categorized and
-                                normalized
+                                Receipts categorized and normalized
                             </Text>
                         </Box>
 
                         <Box
-                            border="1px solid rgba(255,255,255,0.06)"
-                            bg="linear-gradient(170deg, rgba(255,255,255,0.02), rgba(8,10,20,0.95))"
+                            border={surfaceBorder}
+                            bg={surfaceBg}
                             borderRadius="xl"
-                            boxShadow="inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 50px -32px rgba(0,0,0,0.8)"
+                            boxShadow={`inset 0 1px 0 ${isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.05)"}, ${surfaceShadow}`}
                             p={5}
                         >
-                            <Text
-                                fontWeight="medium"
-                                color="rgba(255,255,255,0.9)"
-                                mb={4}
-                            >
+                            <Text fontWeight="medium" color={strongText} mb={4}>
                                 Monthly totals across all accounts
                             </Text>
                             <Box
-                                border="1px solid rgba(255,255,255,0.06)"
+                                border={surfaceBorder}
                                 borderRadius="lg"
-                                bg="rgba(255,255,255,0.02)"
+                                bg={insetBg}
                                 p={4}
                                 mb={4}
                                 minH="140px"
@@ -372,7 +432,7 @@ export function HeroSection() {
                                         <Text
                                             mt={2}
                                             fontSize="xs"
-                                            color="rgba(255,255,255,0.7)"
+                                            color={midText}
                                         >
                                             {bar.label}
                                         </Text>
@@ -394,18 +454,22 @@ export function HeroSection() {
                 py={{ base: 10, md: 12 }}
             >
                 <Box
-                    border="1px solid rgba(255,255,255,0.08)"
+                    border={surfaceBorder}
                     borderRadius="lg"
-                    bg="rgba(255,255,255,0.02)"
+                    bg={insetBg}
                     px={{ base: 5, md: 8 }}
                     py={{ base: 5, md: 6 }}
-                    boxShadow="inset 0 1px 0 rgba(255,255,255,0.05)"
+                    boxShadow={
+                        isLight
+                            ? "inset 0 1px 0 rgba(255,255,255,0.9)"
+                            : "inset 0 1px 0 rgba(255,255,255,0.05)"
+                    }
                 >
                     <HStack
                         spacing={{ base: 4, md: 8 }}
                         flexWrap="wrap"
                         justify="center"
-                        color="rgba(255,255,255,0.78)"
+                        color={midText}
                         fontSize={{ base: "sm", md: "md" }}
                     >
                         {[
@@ -420,7 +484,7 @@ export function HeroSection() {
                                     viewBox="0 0 24 24"
                                     w="20px"
                                     h="20px"
-                                    color="rgba(255,255,255,0.7)"
+                                    color={midText}
                                     opacity={0.8}
                                     stroke="currentColor"
                                     strokeWidth="1.6"
@@ -484,17 +548,17 @@ export function HeroSection() {
                         ].map((item) => (
                             <Box
                                 key={item.title}
-                                border="1px solid rgba(255,255,255,0.06)"
+                                border={surfaceBorder}
                                 borderRadius="xl"
-                                bg="linear-gradient(170deg, rgba(255,255,255,0.02), rgba(8,10,20,0.95))"
-                                boxShadow="inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 50px -32px rgba(0,0,0,0.8)"
+                                bg={surfaceBg}
+                                boxShadow={`inset 0 1px 0 ${isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.05)"}, ${surfaceShadow}`}
                                 p={{ base: 5, md: 6 }}
                             >
                                 <Text
                                     fontWeight="semibold"
                                     fontSize="lg"
                                     mb={3}
-                                    color="rgba(255,255,255,0.92)"
+                                    color={diffTitleColor}
                                 >
                                     {item.title}
                                 </Text>

@@ -7,6 +7,7 @@ It connects to your Gmail inbox, extracts purchase receipts with the help of an 
 
 ## Visuals
 
+![FinOS landing](docs/landing.png)
 ![FinOS dashboard preview](docs/dashboard.png)
 
 ![Receipt ingestion and sync status](docs/txn_and_sync_status.png)
@@ -19,7 +20,7 @@ It connects to your Gmail inbox, extracts purchase receipts with the help of an 
 | Component | Description | Tech |
 | --------- | ----------- | ---- |
 | `backend/` | Rust service that handles Google OAuth, receipt ingestion, JWT auth, and MongoDB persistence. | Axum, Tokio, MongoDB, Ollama, Google OAuth |
-| `frontend/` | Next.js Progressive Web App for visualizing receipts and managing accounts. | Next.js 15, React 19, Tailwind |
+| `frontend/` | Next.js Progressive Web App for visualizing receipts and managing accounts. | Next.js 15, React 19, Chakra UI |
 
 The backend exposes a REST API protected by JWT session tokens. A background job periodically syncs mailboxes and stores new transactions. The frontend consumes those APIs and can be installed as a PWA.
 
@@ -142,4 +143,3 @@ Consult the component READMEs for API details and development tips.
 - Improved frontend UX (Tailwind layout, charts)
 
 Pull requests and design discussions are welcome. Open an issue with context and proposed changes before large contributions.
-
